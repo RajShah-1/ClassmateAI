@@ -1,0 +1,78 @@
+All it means simply is when we fill out the nodes, we go top to bottom, we go left to right.
+And do you see how we go from left to right?
+So now that we understand our terminology very soundly, what we need to do is let's look at these traversals and yes, these are going to be the raw traversals you can do on a tree.
+Okay, so what we're going to do is we're going to do a traversal of this tree and there are three fundamental ways to traverse a binary tree.
+So what I want you to see is in a pre-order traversal, in a pre-order traversal, we visit the node, we visit the left subtree, we visit the right subtree.
+Do you see how it's pre before the left and right?
+So left subtree, visit the node and then visit the right subtree.
+We go left subtree, we go right subtree, we visit the node.
+It's after the left and right.
+So the left and right stay in sequence, left and right stay in sequence, but the prefix tells us when we visit the node before the subtree.
+So subtree will be left to right.
+So do you see how I just put node left right?
+I see I have to do a node visit, I have to do a left subtree visit, I have to do a right subtree visit.
+So what I'm going to do is I'm going to do the node visit.
+We want to get our fundamentals down for visiting a node right now.
+We're going to say I need to visit my left.
+So this stack frame says I need to visit the left subtree.
+Okay, so now we recurse and now we just circled the left and now we're going to come down and we'll come to the 7.
+And notice the next step in 7's policy in this stack frame is to visit the left subtree.
+So we visit the left subtree.
+So do you see how recursion is we're executing the same policy at each node, but it's going to give us the behavior we desire because of the way we're ordering the visitations, right?
+We're going to visit the 1.
+And then 1 says I need to visit my left subtree.
+What is left for this recursion in this stack frame to finish?
+And we see all that's left is visit the right subtree.
+Let's visit the right subtree.
+So this says I need to visit my right.
+So the 6 visits is right.
+In 7's stack frame, in its policy, it's stack frame, it says I visited my left.
+And now all 7 has to do is visit its right subtree.
+And then it needs to go left.
+And so 9 needs to visit its left.
+9 needs to visit its right.
+7 was just visiting its right subtree.
+And so 11 has to visit its left.
+And so 11 has to visit its right.
+And so 11 visits its right.
+Go left and right.
+So 20 now needs to go left.
+Well, we need to go to the right.
+So we're going to go left.
+We're going to visit the node we're sitting at.
+And then we're going to go right.
+So we're going to go left at 10.
+7 needs to go left.
+6 needs to go left.
+1 needs to go left.
+And 1 is going to go left.
+So 6 just finished up going left.
+So now 6 needs to go right.
+So 7 just finished going left.
+So now 7 needs to go right.
+And now 8 needs to go left.
+And then 8 needs to go right.
+And then we see 9 needs to go left.
+And then 9 needs to go right.
+And now 10 needs to go to its right.
+And now 11 needs to go to its left.
+And then we see 14 needs to go right, there's nothing there.
+And then 20 needs to go to the right.
+And then we reach 22, 22 needs to go left to visit itself and go right.
+And now 22 needs to go right, there's nothing there.
+Okay, so now we're going to do the post order traversal and nothing changes, nothing changes except our policy at each node, the way we visit the nodes.
+So what we're going to do is we're going to go to the left first for 10 will go left first and then seven will go left, six will go left and this is starting to look like the in order traversal, but let's continue.
+We visit ourselves a post last, right?
+So what we're going to do is visit our right, there's nothing there and then we'll visit ourselves and what we're going to do is print ourselves.
+So six needs to go to the right, there's nothing there, so we come back and so six needs to visit itself, so we print six.
+Seven just finished up its left subtree, so now seven goes to the right.
+Eight needs to go to the left to the right and to itself.
+Eight, eight realizes its finished its right subtree and now eight needs to print itself.
+Eleven needs to go to the left.
+Twenty needs to go left, right and visit itself.
+So now we're going to go to the right.
+It's to go left to go right and then print itself.
+So now twenty two's going left.
+It needs to go right.
+But what we're going to do is there's a certain way we need to visit these nodes.
+And however we structure our recursion, however we structure our stack, what items we push and what order is going to change how we visit these nodes.
