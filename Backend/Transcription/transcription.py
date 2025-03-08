@@ -61,6 +61,7 @@ def generate_study_notes(transcript):
     
     return study_notes
 
+'''
 audio_file_path = Path('Transcription/samples/sample-audio-2.mp3')
 transcript = transcribe_audio(audio_file_path)
 print("Transcription complete. Saved to 'transcript.txt'")
@@ -74,3 +75,4 @@ study_notes = generate_study_notes(summary)
 with open('Transcription/samples/study_notes.md', 'w') as file:
     file.write(study_notes)
 print("Study notes saved to 'study_notes.md'")
+'''
