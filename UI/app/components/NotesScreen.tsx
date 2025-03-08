@@ -1,23 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlatList } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { List } from 'react-native-paper';
+import { fetchNoteData, NoteData } from '../utils/fetchData';
 
-const notes = [
-    { id: '1', title: 'Binary Tree Notes', description: 'Introduction to binary trees and notes on terminologies used' },
-    { id: '2', title: 'Doubts on Dijkstra', description: 'Explanation on when Dijkstra fails and what are the common use cases' },
-    { id: '3', title: 'Insertion time complexity', description: '' },
-];
+export const NotesScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
+  const [notes, setNotes] = useState<NoteData>([]);
 
-export const NotesScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => (
+  useEffect(() => {
+    const getNotes = async () => {  
+      const data : NoteData = await fetchNoteData();
+      setNotes(data);
+    };
+    getNotes();
+  }, []);
+
+  return (
     <FlatList
-        data={notes}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-            <List.Item
-                title={item.title}
-                description={item.description}
-                onPress={() => navigation.navigate('Chat')}
-                left={() => <List.Icon icon="note" />} />
-        )} />
-);
+      data={notes}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <List.Item
+          title={item.title}
+          description={item.description}
+          onPress={() => navigation.navigate('Chat')}
+          left={() => <List.Icon icon="note" />}
+        />
+      )}
+    />
+  );
+};
