@@ -1,50 +1,78 @@
-# Welcome to your Expo app 👋
+# ClassmateAI App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Overview
+The **ClassmateAI App** is a React Native application designed to assist students with managing their lecture notes, reviewing summaries, and engaging in AI-driven discussions about lecture content. The app allows users to upload audio lectures, generate notes, and interact with an AI chatbot to enhance their learning experience.
 
-## Get started
+## Features
+- **Course & Lecture Management**
+  - View a list of available courses.
+  - Access lectures within each course.
+  - Upload audio files for lecture note generation.
+  
+- **Lecture Details & Summaries**
+  - View lecture information and AI-generated summaries.
+  - Expand and collapse summaries for a quick or detailed overview.
 
+- **Note Management**
+  - View saved notes for each lecture.
+  - Read full note descriptions or toggle between short and expanded views.
+  
+- **AI Chatbot Integration (yet to be implemented)**
+  - Engage in conversations with AI regarding lecture topics.
+
+## Tech Stack
+- **Frontend:** React Native with TypeScript
+- **UI Components:** React Native Paper
+- **Navigation:** React Navigation
+- **File Handling:** Expo Document Picker
+- **Data Fetching:** Custom API calls (fetchData.ts)
+- **State Management:** React useState & useEffect hooks
+
+## Installation & Setup
+### Prerequisites
+Ensure you have the following installed:
+- [Node.js](https://nodejs.org/)
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [Yarn](https://yarnpkg.com/) or npm
+
+## Get Started
 1. Install dependencies
-
    ```bash
    npm install
    ```
 
 2. Start the app
-
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. To start ios app in simulator
+   ```bash
+   npm run ios
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+## Project Structure
+```
+├── components/
+│   ├── ChatScreen.tsx          # AI Chat interface
+│   ├── CourseScreen.tsx        # Course listing
+│   ├── LecturesScreen.tsx      # Lectures within a course
+│   ├── LectureDetails.tsx      # Lecture details and summaries
+│   ├── NoteViewScreen.tsx      # Detailed note view
+├── utils/
+│   ├── fetchData.ts            # API calls for fetching lectures & notes
+│   ├── uploadAudio.ts          # Function for audio file uploads
+│   ├── styles.ts               # Shared styles for UI components
+├── App.tsx                     # Main entry point
+├── package.json                # Dependencies & scripts
+├── README.md                   # Project documentation
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Interations with Backend Endpoints
+- `fetchCourseData()`: Fetch list of courses.
+- `fetchLectureData(courseId)`: Fetch lectures for a course.
+- `fetchNoteListData(lectureId)`: Get notes for a lecture.
+- `fetchNoteData(lectureId)`: Get detailed note content.
+- `createLecture(courseId, title)`: Create a new lecture.
+- `uploadAudioFile(uri, courseId, lectureId)`: Uploads an audio file.
+- `deleteLecture(lectureId)`: Deletes a lecture if an upload fails.
