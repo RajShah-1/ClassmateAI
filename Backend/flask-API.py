@@ -75,7 +75,8 @@ def create_lecture(course_id):
         'description': f'Lecture on {data["lectureTitle"]}',
         'summary': '',
         'summaryStatus': 'NOT_STARTED',
-        'lastUpdated': datetime.now(timezone.utc).timestamp()
+        'lastUpdated': datetime.now(timezone.utc).timestamp(),
+        'notes': ''
     }
     lectures = load_data(LECTURES_FILE)
     lectures[lecture_id] = lecture

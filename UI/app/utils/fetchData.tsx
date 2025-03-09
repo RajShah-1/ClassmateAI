@@ -1,6 +1,6 @@
 import { BACKEND_URL } from "./constants";
 
-export type NoteListData = { id: string; title: string; description: string; }[];
+export type NoteListData = { id: string; title: string; description: string; summary: string; }[];
 export type NoteData = { id: string; content: string; };
 export type LectureData = { id: string; title: string; description: string; duration: string; date: string; }[];
 export type CourseData = { id: string; title: string; description: string; lectures: number; date: string; }[];
@@ -33,10 +33,10 @@ export const fetchNoteData = async (lectureId: string) => {
     }
     const lecture = await lectureResponse.json();
     
-    if (lecture.summary) {
+    if (lecture.notes) {
         return {
             id: lectureId,
-            content: lecture.summary
+            content: lecture.notes
         };
     } else {
         return null;
@@ -45,9 +45,7 @@ export const fetchNoteData = async (lectureId: string) => {
 
 export const fetchNoteListData = async (courseId: string, lectureId?: string) => {
     const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${courseId}`);
-    console.log('fetching notes')
     if (!lectureResponse.ok) {
-        console.log('failed to fetch notes')
         throw new Error("Failed to fetch lectures");
     }
     const lecture = await lectureResponse.json();
@@ -55,7 +53,8 @@ export const fetchNoteListData = async (courseId: string, lectureId?: string) =>
     return [{
         id: lecture.lectureId,
         title: `Organized Notes on ${lecture.lectureTitle}`,
-        description: lecture.summary
+        description: lecture.description,
+        summary: lecture.summary.trimStart(),
     }];
 };
 

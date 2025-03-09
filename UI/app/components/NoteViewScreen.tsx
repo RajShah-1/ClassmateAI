@@ -8,6 +8,17 @@ import { fetchNoteData } from '../utils/fetchData';
 
 type NoteViewRouterProps = RouteProp<{ NoteView: { lectureId: string } }, 'NoteView'>;
 
+const markdownStyles = {
+    body: { fontSize: 16, lineHeight: 24, paddingHorizontal: 10 },
+    heading1: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+    heading2: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+    heading3: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+    paragraph: { fontSize: 16, marginBottom: 10 },
+    list_item: { fontSize: 16, marginVertical: 5 },
+    code_block: { backgroundColor: '#f4f4f4', padding: 10, borderRadius: 5 },
+    hr: { backgroundColor: '#ccc', height: 1, marginVertical: 10 },
+};
+
 export const NoteViewScreen = () => {
     const route = useRoute<NoteViewRouterProps>();
     const { lectureId } = route.params;
@@ -22,7 +33,7 @@ export const NoteViewScreen = () => {
                 if (data) {
                     setNote(data);
                 } else {
-                    Alert.alert('No Summary Found', 'This lecture does not have a summary.');
+                    // Alert.alert('Notes are still being generated. Try again later.');
                 }
             } catch (error) {
                 Alert.alert('Error', 'Failed to fetch note.');
@@ -43,7 +54,7 @@ export const NoteViewScreen = () => {
                 <ScrollView contentContainerStyle={styles.container}>
                     <Card style={styles.noteCard}>
                         <Card.Content>
-                            <Title style={styles.noteTitle}>No Summary Available</Title>
+                            <Title style={styles.noteTitle}>Notes are not ready yet! Please try again later.</Title>
                         </Card.Content>
                     </Card>
                 </ScrollView>
@@ -54,12 +65,7 @@ export const NoteViewScreen = () => {
     return (
         <View style={styles.screen}>
             <ScrollView contentContainerStyle={styles.container}>
-                <Card style={styles.noteCard}>
-                    <Card.Content>
-                        <Title style={styles.noteTitle}>Organized Notes</Title>
-                        <Markdown>{note.content}</Markdown>
-                    </Card.Content>
-                </Card>
+                <Markdown style={markdownStyles}>{note.content}</Markdown>
             </ScrollView>
         </View>
     );

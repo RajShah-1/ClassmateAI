@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   // For NoteView
   loadingIndicator: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  markdownText: { lineHeight: 24, color: '#444', paddingHorizontal: 4 },
 
   // For upload
   uploadContainer: {

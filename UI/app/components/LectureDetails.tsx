@@ -22,6 +22,7 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
   const { lectureTitle, lectureId } = route.params;
   const [notes, setNotes] = useState<NoteListData>([]);
   const [expandedNotes, setExpandedNotes] = useState<{ [key: string]: boolean }>({});
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 
   useEffect(() => {
     const getNotes = async () => {
@@ -38,11 +39,10 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
     }));
   };
 
-
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Card style={[styles.card, styles.headerCard]}>
+        <Card style={[styles.card, styles.headerCard]} key={lectureId}>
           <View style={styles.cardRow}>
             <Avatar.Icon icon="file-document-outline" size={50} style={styles.icon} />
             <View style={styles.textContainer}>
@@ -59,16 +59,29 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
           </View>
         </Card>
 
-        <View style={styles.summaryContainer}>
-          <Title style={styles.sectionTitle}>Summary</Title>
-          <Paragraph style={styles.summaryText}>
-            This lecture provides an in-depth explanation of {lectureTitle}, covering its fundamental concepts and applications.
-          </Paragraph>
-        </View>
+          <View style={styles.summaryContainer}>
+            <Title style={styles.sectionTitle}>Summary</Title>
+            <Paragraph style={styles.summaryText}>
+                {isSummaryExpanded 
+                ? (notes.length > 0 ? notes[0].summary : 'No summary available.') 
+                : (notes.length > 0 && notes[0].summary.length > 0 
+                  ? notes[0].summary.length > 100 
+                    ? `${notes[0].summary.slice(0, 100)}...` 
+                    : notes[0].summary 
+                  : 'No summary available.')}
+            </Paragraph>
+            {notes && notes.length > 0 && notes[0].summary.length > 100 && (
+              <Button mode="text" onPress={() => setIsSummaryExpanded(!isSummaryExpanded)}>
+                {isSummaryExpanded ? "Show Less" : "Show More"}
+              </Button>
+            )}
+          </View>
+
 
         <Title style={styles.sectionTitle}>Saved Notes</Title>
         {notes.map((note) => {
           const isExpanded = expandedNotes[note.id];
+          note.description = note.description || "No description available";
           const shortDescription = note.description.length > 100 ? `${note.description.slice(0, 100)}...` : note.description;
 
           return (
@@ -81,7 +94,6 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
             >
               <Card.Content style={styles.noteCardContent}>
                 <Title style={styles.noteTitle}>{note.title}</Title>
-                {/* <Text style={styles.noteSummarySubtext}>Summary</Text> */}
                 <Paragraph style={styles.noteDescription}>
                   {isExpanded ? note.description : shortDescription}
                 </Paragraph>

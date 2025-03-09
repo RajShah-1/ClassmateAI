@@ -10,11 +10,11 @@ const Stack = createStackNavigator();
 export default function Index() {
   return (
     <PaperProvider>
-      <Stack.Navigator>
-        <Stack.Screen name="Courses" component={CourseScreen} />
-        <Stack.Screen name="Lectures" component={LecturesScreen} />
-        <Stack.Screen name="LectureDetails" component={LectureDetailsScreen} />
-        <Stack.Screen name="NoteView" component={NoteViewScreen} />
+      <Stack.Navigator initialRouteName="Courses">
+        <Stack.Screen name="Courses" component={CourseScreen} options={{ title: 'Courses' }} />
+        <Stack.Screen name="Lectures" component={LecturesScreen} options={{ title: 'Lectures' }}/>
+        <Stack.Screen name="LectureDetails" component={LectureDetailsScreen} options={{ title: 'Lecture Details' }}/>
+        <Stack.Screen name="NoteView" component={NoteViewScreen} options={{ title: 'Notes' }}/>
       </Stack.Navigator>
     </PaperProvider>
   );
