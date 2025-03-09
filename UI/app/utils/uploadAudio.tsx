@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import { BACKEND_URL, AUDIO_UPLOAD_TIMEOUT_MS } from './constants';
 
 
-export const uploadAudioFile = async (uri: string, courseId: Number, lectureId: Number) => {
+export const uploadAudioFile = async (uri: string, courseId: string, lectureId: string) => {
     const UPLOAD_ENDPOINT = `${BACKEND_URL}/courses/${courseId}/lectures/${lectureId}/upload-audio`;
 
     console.log('Uploading to:', UPLOAD_ENDPOINT);

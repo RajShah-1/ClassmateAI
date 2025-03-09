@@ -3,9 +3,10 @@
         "courseID": "c454f860-c651-4b1d-9cc3-9497b08a2bad",
         "courseName": "Introduction to Python",
         "courseSummary": "A comprehensive course covering Python basics",
-        "lastUpdated": "2025-03-07T21:13:31.033883",
+        "lastUpdated": "1741372243.297574",
         "lectures": [
-            "04ee0fde-5d80-48f0-a79b-586d2a88047d"
+            "04ee0fde-5d80-48f0-a79b-586d2a88047d",
+            "87c5dd7a-b5d0-43fc-8e70-e9503482ef84"
         ]
     },
     "748bf1fa-642a-4460-9849-8a2a0e7fe3dd": {
@@ -14,5 +15,14 @@
         "courseSummary": "A comprehensive course covering Python advanced topics",
         "lastUpdated": 1741382243.297574,
         "lectures": []
+    },
+    "be696ea6-bca4-4be3-bb8e-ad8bb9be1635": {
+        "courseID": "be696ea6-bca4-4be3-bb8e-ad8bb9be1635",
+        "courseName": "Introduction to AI",
+        "courseSummary": "This course covers the basics of Artificial Intelligence.",
+        "lastUpdated": 1741481565.814013,
+        "lectures": [
+            "b6ae4289-bcfd-4d48-96be-329c76a1fa1b"
+        ]
     }
 }
