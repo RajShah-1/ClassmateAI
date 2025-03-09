@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { Alert, FlatList, View } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { Card, Title, Paragraph, Avatar, Button } from 'react-native-paper';
 import { styles } from '../utils/styles';
@@ -8,10 +8,32 @@ import { fetchCourseData, CourseData } from '../utils/fetchData';
 export const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
   const [courses, setCourses] = useState<CourseData>([]);
 
+  const retryFetchCourses = (retries: number) => {
+    setTimeout(async () => {
+      try {
+        const data: CourseData = await fetchCourseData();
+        setCourses(data);
+      } catch (error) {
+        if (retries > 0) {
+          console.error('Retrying to fetch courses', error);
+          retryFetchCourses(retries - 1);
+        } else {
+          console.error('Failed to fetch courses after retries', error);
+          Alert.alert('Failed to get the courses!');
+        }
+      }
+    }, 5000);
+  };
+
   useEffect(() => {
     const getCourses = async () => {
-      const data : CourseData = await fetchCourseData();
-      setCourses(data);
+      try {
+        const data: CourseData = await fetchCourseData();
+        setCourses(data);
+      } catch (error) {
+        console.error('Failed to fetch courses', error);
+        retryFetchCourses(3); // Retry 3 times upon failure
+      }
     };
     getCourses();
   }, []);

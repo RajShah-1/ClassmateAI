@@ -2,6 +2,10 @@
 
 personal/
 
+# Ignore andriod and ios dists
+android/
+ios/
+
 # dependencies
 node_modules/
 
