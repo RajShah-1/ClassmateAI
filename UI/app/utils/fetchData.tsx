@@ -1,6 +1,7 @@
 import { BACKEND_URL } from "./constants";
 
-export type NoteData = { id: string; title: string; description: string; }[];
+export type NoteListData = { id: string; title: string; description: string; }[];
+export type NoteData = { id: string; content: string; };
 export type LectureData = { id: string; title: string; description: string; duration: string; date: string; }[];
 export type CourseData = { id: string; title: string; description: string; lectures: number; date: string; }[];
 
@@ -25,12 +26,37 @@ export const createLecture = async (courseId: string, lectureTitle: string) => {
     }
 };
 
-export const fetchNoteData = async () => {
-    const response = await fetch(`${BACKEND_URL}/notes`);
-    if (!response.ok) {
-        throw new Error("Failed to fetch notes");
+export const fetchNoteData = async (lectureId: string) => {
+    const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${lectureId}`);
+    if (!lectureResponse.ok) {
+        throw new Error("Failed to fetch lecture");
     }
-    return await response.json();
+    const lecture = await lectureResponse.json();
+    
+    if (lecture.summary) {
+        return {
+            id: lectureId,
+            content: lecture.summary
+        };
+    } else {
+        return null;
+    }
+};
+
+export const fetchNoteListData = async (courseId: string, lectureId?: string) => {
+    const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${courseId}`);
+    console.log('fetching notes')
+    if (!lectureResponse.ok) {
+        console.log('failed to fetch notes')
+        throw new Error("Failed to fetch lectures");
+    }
+    const lecture = await lectureResponse.json();
+
+    return [{
+        id: lecture.lectureId,
+        title: `Organized Notes on ${lecture.lectureTitle}`,
+        description: lecture.summary
+    }];
 };
 
 export const fetchLectureData = async (courseId: string) => {

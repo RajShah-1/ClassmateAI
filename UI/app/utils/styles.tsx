@@ -1,6 +1,9 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
+  // For NoteView
+  loadingIndicator: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   // For upload
   uploadContainer: {
     padding: 16,
@@ -27,6 +30,7 @@ export const styles = StyleSheet.create({
   lectureTitle: { fontSize: 22, fontWeight: 'bold' },
   lectureDetailsButtonColumn: { flexDirection: 'column', marginTop: 8 },
   smallActionButton: { marginTop: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, width: '90%', alignSelf: 'center' },
+  // noteSummarySubtext: { fontSize: 12, color: '#333', marginBottom: 5, fontWeight: 'bold' },
 
 
   screen: { flex: 1 },

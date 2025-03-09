@@ -1,7 +1,7 @@
 // LectureDetails.tsx
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { NavigationProp, RouteProp } from '@react-navigation/native';
+import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
 import {
   Avatar,
   Card,
@@ -11,26 +11,35 @@ import {
   Paragraph,
 } from 'react-native-paper';
 import { styles } from '../utils/styles';
-import { fetchNoteData, NoteData } from '../utils/fetchData';
+import { fetchNoteData, fetchNoteListData, NoteListData } from '../utils/fetchData';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-interface LectureDetailsProps {
-  navigation: NavigationProp<any>;
-  route: any
-}
+type LectureDetailsRouterProp = RouteProp<{ LectureDetails: { lectureId: string, lectureTitle: string } }, 'LectureDetails'>;
 
-export const LectureDetailsScreen = ({ navigation, route }: LectureDetailsProps) => {
-  const { lectureTitle } = route.params;
-  const [notes, setNotes] = useState<NoteData>([]);
+export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+  const route = useRoute<LectureDetailsRouterProp>();
+
+  const { lectureTitle, lectureId } = route.params;
+  const [notes, setNotes] = useState<NoteListData>([]);
+  const [expandedNotes, setExpandedNotes] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const getNotes = async () => {
-      const data : NoteData = await fetchNoteData();
+      const data: NoteListData = await fetchNoteListData(lectureId);
       setNotes(data);
     };
     getNotes();
   }, []);
 
-  return  (
+  const toggleExpand = (noteId: string) => {
+    setExpandedNotes((prev) => ({
+      ...prev,
+      [noteId]: !prev[noteId],
+    }));
+  };
+
+
+  return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={[styles.card, styles.headerCard]}>
@@ -39,7 +48,7 @@ export const LectureDetailsScreen = ({ navigation, route }: LectureDetailsProps)
             <View style={styles.textContainer}>
               <Title style={styles.lectureTitle}>{lectureTitle}</Title>
               <View style={styles.lectureDetailsButtonColumn}>
-                <Button mode="contained" style={styles.actionButton} onPress={() => {}}>
+                <Button mode="contained" style={styles.actionButton} onPress={() => { }}>
                   Download
                 </Button>
                 <Button mode="contained" style={styles.actionButton} onPress={() => navigation.navigate('Chat', { lectureTitle })}>
@@ -58,14 +67,33 @@ export const LectureDetailsScreen = ({ navigation, route }: LectureDetailsProps)
         </View>
 
         <Title style={styles.sectionTitle}>Saved Notes</Title>
-        {notes.map((note) => (
-          <Card key={note.id} style={styles.noteCard}>
-            <Card.Content style={styles.noteCardContent}>
-              <Title style={styles.noteTitle}>{note.title}</Title>
-              <Paragraph style={styles.noteDescription}>{note.description}</Paragraph>
-            </Card.Content>
-          </Card>
-        ))}
+        {notes.map((note) => {
+          const isExpanded = expandedNotes[note.id];
+          const shortDescription = note.description.length > 100 ? `${note.description.slice(0, 100)}...` : note.description;
+
+          return (
+            <Card
+              key={note.id}
+              style={styles.noteCard}
+              onPress={() =>
+                navigation.navigate('NoteView', { lectureId: lectureId })
+              }
+            >
+              <Card.Content style={styles.noteCardContent}>
+                <Title style={styles.noteTitle}>{note.title}</Title>
+                {/* <Text style={styles.noteSummarySubtext}>Summary</Text> */}
+                <Paragraph style={styles.noteDescription}>
+                  {isExpanded ? note.description : shortDescription}
+                </Paragraph>
+                {note.description.length > 100 && (
+                  <Button mode="text" onPress={() => toggleExpand(note.id)}>
+                    {isExpanded ? "Show Less" : "Show More"}
+                  </Button>
+                )}
+              </Card.Content>
+            </Card>
+          );
+        })}
       </ScrollView>
     </View>
   );

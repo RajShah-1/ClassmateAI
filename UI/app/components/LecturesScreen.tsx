@@ -101,7 +101,7 @@ export const LecturesScreen = ({ navigation }: { navigation: NavigationProp<any>
                 <Paragraph>{item.description}</Paragraph>
                 <Paragraph style={styles.meta}>{item.date} • {item.duration}</Paragraph>
               </View>
-              <IconButton icon="chevron-right" onPress={() => navigation.navigate('LectureDetails', { lectureId: item.id })} />
+              <IconButton icon="chevron-right" onPress={() => navigation.navigate('LectureDetails', { lectureId: item.id, lectureTitle: item.title })} />
             </View>
           </Card>
         )}
