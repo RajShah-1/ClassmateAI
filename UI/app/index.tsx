@@ -8,7 +8,10 @@ import { LecturesScreen } from './components/LecturesScreen';
 import { LectureDetailsScreen } from './components/LectureDetails';
 import { NoteViewScreen } from './components/NoteViewScreen';
 import { ChatScreen } from './components/ChatScreen';
+<<<<<<< HEAD
 import LoginScreen from './components/LoginScreen';
+=======
+>>>>>>> aaa224c (Add chat UI code with dummy data)
 
 const Stack = createStackNavigator();
 
@@ -30,6 +33,7 @@ export default function Index() {
 
   return (
     <PaperProvider>
+<<<<<<< HEAD
         <Stack.Navigator>
           {user ? (
             <>
@@ -52,6 +56,15 @@ export default function Index() {
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
           )}
         </Stack.Navigator>
+=======
+      <Stack.Navigator initialRouteName="Courses">
+        <Stack.Screen name="Courses" component={CourseScreen} options={{ title: 'Courses' }} />
+        <Stack.Screen name="Lectures" component={LecturesScreen} options={{ title: 'Lectures' }}/>
+        <Stack.Screen name="LectureDetails" component={LectureDetailsScreen} options={{ title: 'Lecture Details' }}/>
+        <Stack.Screen name="NoteView" component={NoteViewScreen} options={{ title: 'Notes' }}/>
+        <Stack.Screen name="Chat" component={ChatScreen} />
+      </Stack.Navigator>
+>>>>>>> aaa224c (Add chat UI code with dummy data)
     </PaperProvider>
   );
 }

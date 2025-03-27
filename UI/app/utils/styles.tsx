@@ -59,3 +59,57 @@ export const styles = StyleSheet.create({
   },
   uploadIcon: { backgroundColor: 'transparent' },
 });
+
+
+export const chatStyles = StyleSheet.create({
+  chatContainer: {
+    flex: 1,
+  },
+  messagesList: {
+    padding: 10,
+  },
+  chatBubbleUser: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#6F4EA0',
+    padding: 10,
+    borderRadius: 15,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    maxWidth: '80%',
+  },
+  chatBubbleAI: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F2DFF8',
+    padding: 10,
+    borderRadius: 15,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    maxWidth: '80%',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D6D3E0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    backgroundColor: '#FBFAFD',
+  },
+});
+
+export const chatMarkdownStyles = {
+  user: {
+    body: { color: '#FFFFFF', fontSize: 14 },
+    paragraph: { marginBottom: 0 },
+  },
+  ai: {
+    body: { color: '#2C2C2C', fontSize: 14 },
+    paragraph: { marginBottom: 0 },
+  },
+};
