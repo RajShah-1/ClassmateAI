@@ -19,20 +19,24 @@ UPLOAD_FOLDER = 'uploads'
 CHATS_FILE = 'chats.json'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+
 def load_data(file):
     if os.path.exists(file):
         with open(file, 'r') as f:
             return json.load(f)
     return {}
 
+
 def save_data(file, data):
     with open(file, 'w') as f:
         json.dump(data, f, indent=4)
+
 
 @app.route('/courses', methods=['GET'])
 def get_courses():
     courses = load_data(COURSES_FILE)
     return jsonify(list(courses.values()))
+
 
 @app.route('/courses', methods=['POST'])
 def create_course():
@@ -50,6 +54,7 @@ def create_course():
     save_data(COURSES_FILE, courses)
     return jsonify(course), 201
 
+
 @app.route('/courses/<course_id>', methods=['GET'])
 def get_course(course_id):
     courses = load_data(COURSES_FILE)
@@ -57,10 +62,11 @@ def get_course(course_id):
         return jsonify(courses[course_id])
     return jsonify({'error': 'Course not found'}), 404
 
+
 @app.route('/', methods=['GET'])
 def hello_server():
     return jsonify('Hello world')
-    
+
 
 @app.route('/courses/<course_id>/lectures', methods=['POST'])
 def create_lecture(course_id):
@@ -87,6 +93,7 @@ def create_lecture(course_id):
     save_data(COURSES_FILE, courses)
     return jsonify(lecture), 201
 
+
 @app.route('/courses/<course_id>/lectures', methods=['GET'])
 def get_lectures(course_id):
     courses = load_data(COURSES_FILE)
@@ -97,12 +104,14 @@ def get_lectures(course_id):
     course_lectures = [lectures[lecture_id] for lecture_id in courses[course_id]['lectures'] if lecture_id in lectures]
     return jsonify(course_lectures)
 
+
 @app.route('/lectures/<lecture_id>', methods=['GET'])
 def get_lecture(lecture_id):
     lectures = load_data(LECTURES_FILE)
     if lecture_id in lectures:
         return jsonify(lectures[lecture_id])
     return jsonify({'error': 'Lecture not found'}), 404
+
 
 @app.route('/lectures/<lecture_id>', methods=['DELETE'])
 def delete_lecture(lecture_id):
@@ -124,6 +133,7 @@ def delete_lecture(lecture_id):
 
     return jsonify({'message': 'Lecture deleted successfully'}), 200
 
+
 def get_transcript(audio_path, lecture):
     transcript_val = transcription.transcribe_audio(audio_path)
     lecture['transcript'] = transcript_val
@@ -133,17 +143,19 @@ def get_transcript(audio_path, lecture):
     lecture['summaryStatus'] = 'COMPLETED'
     return lecture
 
+
 def process_transcription(audio_path, lecture_id):
     lectures = load_data(LECTURES_FILE)
     if lecture_id in lectures:
         transcript_val = transcription.transcribe_audio(audio_path)
         summary = summarize_transcript(transcript_val)
-        
+
         lectures[lecture_id]['transcript'] = transcript_val
         lectures[lecture_id]['summary'] = summary
         lectures[lecture_id]['lastUpdated'] = datetime.now(timezone.utc).timestamp()
         lectures[lecture_id]['summaryStatus'] = 'COMPLETED'
         save_data(LECTURES_FILE, lectures)
+
 
 @app.route('/courses/<course_id>/lectures/<lecture_id>/upload-audio', methods=['POST'])
 def upload_audio(course_id, lecture_id):
@@ -170,7 +182,7 @@ def upload_audio(course_id, lecture_id):
 
         # Start background thread for transcription
         threading.Thread(target=process_transcription, args=(filepath, lecture_id)).start()
-        
+
         return jsonify(lectures[lecture_id])
     return jsonify({'error': 'Lecture not found'}), 404
 
@@ -195,6 +207,7 @@ def create_chat(lecture_id):
 
     return jsonify({'chatID': chat_id}), 201
 
+
 @app.route('/chat/<chat_id>', methods=['GET'])
 def get_chat(chat_id):
     chats = load_data(CHATS_FILE)
@@ -203,12 +216,13 @@ def get_chat(chat_id):
 
     return jsonify(chats[chat_id]['messages']), 200
 
+
 @app.route('/chat/<chat_id>', methods=['POST'])
 def post_message(chat_id):
     data = request.json
     message_type = data.get('type', '')  # Should be 'User' or 'AI'
     message_content = data.get('message', '')
-
+    lectures = load_data(LECTURES_FILE)
     if not message_type or not message_content:
         return jsonify({'error': 'Message type or content is missing'}), 400
 
@@ -217,6 +231,8 @@ def post_message(chat_id):
         return jsonify({'error': 'Chat not found'}), 404
 
     # Creating a message object
+    if len(chats[chat_id]['messages']) == 0:
+        message_content = f"{message_content} use this summary as context {lectures[chats[chat_id]['lectureID']]['summary']}"
     message = {
         'type': message_type,
         'content': message_content,
@@ -226,7 +242,6 @@ def post_message(chat_id):
     # Append the message to the chat
     chats[chat_id]['messages'].append(message)
     save_data(CHATS_FILE, chats)
-
     # Start a background thread to call the Perplexity API
     threading.Thread(target=call_perplexity_api, args=(chat_id, chats)).start()
 
@@ -245,7 +260,7 @@ def call_perplexity_api(chat_id, chats):
         messages.append({'role': role, 'content': msg['content']})
 
     # Add a system message for Markdown formatting
-    messages.insert(0, {'role': 'system', 'content': 'Respond in Markdown format.'})
+    messages.insert(0, {'role': 'system', 'content': 'Respond in Markdown format accurately'})
 
     # Prepare the payload for Perplexity API
     payload = {
@@ -266,7 +281,7 @@ def call_perplexity_api(chat_id, chats):
     # Replace with your actual Perplexity API endpoint and key
     api_url = 'https://api.perplexity.ai/chat/completions'
     headers = {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'Authorization': 'Bearer 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',
         'Content-Type': 'application/json'
     }
 
@@ -275,7 +290,7 @@ def call_perplexity_api(chat_id, chats):
         response_data = response.json()
 
         # Log or handle the response from Perplexity API
-        print(f"Perplexity API response for chat {chat_id}: {response_data}")
+        #print(f"Perplexity API response for chat {chat_id}: {response_data}")
 
         # Optionally save the AI's response back to the chat history
         if response.status_code == 200 and 'choices' in response_data:
@@ -289,6 +304,7 @@ def call_perplexity_api(chat_id, chats):
 
     except Exception as e:
         print(f"Error while calling Perplexity API for chat {chat_id}: {e}")
+
 
 @app.route('/chat/<chat_id>', methods=['DELETE'])
 def delete_chat(chat_id):
