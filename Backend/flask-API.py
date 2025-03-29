@@ -15,6 +15,7 @@ app = Flask(__name__)
 COURSES_FILE = 'courses.json'
 LECTURES_FILE = 'lectures.json'
 UPLOAD_FOLDER = 'uploads'
+CHATS_FILE = 'chats.json'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def load_data(file):
@@ -76,7 +77,7 @@ def create_lecture(course_id):
         'summary': '',
         'summaryStatus': 'NOT_STARTED',
         'lastUpdated': datetime.now(timezone.utc).timestamp(),
-        'notes': ''
+        'notes': []  # Initialize notes as an empty list
     }
     lectures = load_data(LECTURES_FILE)
     lectures[lecture_id] = lecture
@@ -171,6 +172,97 @@ def upload_audio(course_id, lecture_id):
         
         return jsonify(lectures[lecture_id])
     return jsonify({'error': 'Lecture not found'}), 404
+
+
+@app.route('/lectures/<lecture_id>/chat', methods=['GET'])
+def create_chat(lecture_id):
+    lectures = load_data(LECTURES_FILE)
+    if lecture_id not in lectures:
+        return jsonify({'error': 'Lecture not found'}), 404
+
+    chat_id = str(uuid.uuid4())
+    chat = {
+        'chatID': chat_id,
+        'lectureID': lecture_id,
+        'messages': [],
+        'createdAt': datetime.now(timezone.utc).timestamp()
+    }
+
+    chats = load_data(CHATS_FILE)
+    chats[chat_id] = chat
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'chatID': chat_id}), 201
+
+@app.route('/chat/<chat_id>', methods=['GET'])
+def get_chat(chat_id):
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    return jsonify(chats[chat_id]['messages']), 200
+
+@app.route('/chat/<chat_id>', methods=['POST'])
+def post_message(chat_id):
+    data = request.json
+    message_type = data.get('type', '')  # Should be 'User' or 'AI'
+    message_content = data.get('message', '')
+
+    if not message_type or not message_content:
+        return jsonify({'error': 'Message type or content is missing'}), 400
+
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    # Creating a message object
+    message = {
+        'type': message_type,
+        'content': message_content,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+    # Append the message to the chat
+    chats[chat_id]['messages'].append(message)
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'message': 'Message added successfully'}), 201
+
+
+@app.route('/chat/<chat_id>', methods=['DELETE'])
+def delete_chat(chat_id):
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    del chats[chat_id]
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'message': 'Chat deleted successfully'}), 200
+
+
+@app.route('/lectures/<lecture_id>/save-note', methods=['POST'])
+def save_note(lecture_id):
+    data = request.json
+    note_content = data.get('content', '')
+
+    if not note_content:
+        return jsonify({'error': 'Note content is empty'}), 400
+
+    lectures = load_data(LECTURES_FILE)
+    if lecture_id not in lectures:
+        return jsonify({'error': 'Lecture not found'}), 404
+
+    # Append the new note to the list of notes in the lecture
+    if 'notes' not in lectures[lecture_id]:
+        lectures[lecture_id]['notes'] = []
+
+    lectures[lecture_id]['notes'].append(note_content)
+    lectures[lecture_id]['lastUpdated'] = datetime.now(timezone.utc).timestamp()
+    save_data(LECTURES_FILE, lectures)
+
+    return jsonify({'message': 'Note saved successfully'}), 201
+
 
 if __name__ == '__main__':
     app.run(debug=True)
