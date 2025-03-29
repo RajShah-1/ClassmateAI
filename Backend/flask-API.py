@@ -243,68 +243,9 @@ def post_message(chat_id):
     chats[chat_id]['messages'].append(message)
     save_data(CHATS_FILE, chats)
     # Start a background thread to call the Perplexity API
-    threading.Thread(target=call_perplexity_api, args=(chat_id, chats)).start()
+    threading.Thread(target=get_chat_response, args=(chat_id, chats)).start()
 
     return jsonify({'message': 'Message added successfully'}), 201
-
-
-# Function to call Perplexity API
-def call_perplexity_api(chat_id, chats):
-    # Get the full chat history for the given chat_id
-    chat_history = chats[chat_id]['messages']
-
-    # Prepare messages for Perplexity API
-    messages = []
-    for msg in chat_history:
-        role = 'user' if msg['type'] == 'User' else 'assistant'
-        messages.append({'role': role, 'content': msg['content']})
-
-    # Add a system message for Markdown formatting
-    messages.insert(0, {'role': 'system', 'content': 'Respond in Markdown format accurately'})
-
-    # Prepare the payload for Perplexity API
-    payload = {
-        "model": "sonar",
-        "messages": messages,
-        "temperature": 0.2,
-        "top_p": 0.9,
-        "return_images": False,
-        "return_related_questions": False,
-        "top_k": 0,
-        "stream": False,
-        "presence_penalty": 0,
-        "frequency_penalty": 1,
-        "response_format": {"type": "text"},
-        "web_search_options": {"search_context_size": "high"}
-    }
-
-    # Replace with your actual Perplexity API endpoint and key
-    api_url = 'https://api.perplexity.ai/chat/completions'
-    headers = {
-        'Authorization': 'Bearer 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',
-        'Content-Type': 'application/json'
-    }
-
-    try:
-        response = requests.post(api_url, json=payload, headers=headers)
-        response_data = response.json()
-
-        # Log or handle the response from Perplexity API
-        #print(f"Perplexity API response for chat {chat_id}: {response_data}")
-
-        # Optionally save the AI's response back to the chat history
-        if response.status_code == 200 and 'choices' in response_data:
-            ai_message = {
-                'type': 'AI',
-                'content': response_data['choices'][0]['message']['content'],
-                'timestamp': datetime.now(timezone.utc).isoformat()
-            }
-            chats[chat_id]['messages'].append(ai_message)
-            save_data(CHATS_FILE, chats)
-
-    except Exception as e:
-        print(f"Error while calling Perplexity API for chat {chat_id}: {e}")
-
 
 @app.route('/chat/<chat_id>', methods=['DELETE'])
 def delete_chat(chat_id):
@@ -340,6 +281,63 @@ def save_note(lecture_id):
 
     return jsonify({'message': 'Note saved successfully'}), 201
 
+def get_chat_response(chat_id, chats):
+    # Get the full chat history for the given chat_id
+    chat_history = chats[chat_id]['messages']
+    api_key = os.environ.get('PERPLEXITY_API_KEY')
+    if not api_key:
+        raise ValueError("Perplexity API key not found in environment variables")
+    # Prepare messages for Perplexity API
+    messages = []
+    for msg in chat_history:
+        role = 'user' if msg['type'] == 'User' else 'assistant'
+        messages.append({'role': role, 'content': msg['content']})
+
+    # Add a system message for Markdown formatting
+    messages.insert(0, {'role': 'system', 'content': 'Respond in Markdown format accurately'})
+
+    # Prepare the payload for Perplexity API
+    payload = {
+        "model": "sonar",
+        "messages": messages,
+        "temperature": 0.2,
+        "top_p": 0.9,
+        "return_images": False,
+        "return_related_questions": False,
+        "top_k": 0,
+        "stream": False,
+        "presence_penalty": 0,
+        "frequency_penalty": 1,
+        "response_format": {"type": "text"},
+        "web_search_options": {"search_context_size": "high"}
+    }
+
+    # Replace with your actual Perplexity API endpoint and key
+    api_url = 'https://api.perplexity.ai/chat/completions'
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        'Content-Type': 'application/json'
+    }
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers)
+        response_data = response.json()
+
+        # Log or handle the response from Perplexity API
+        #print(f"Perplexity API response for chat {chat_id}: {response_data}")
+
+        # Optionally save the AI's response back to the chat history
+        if response.status_code == 200 and 'choices' in response_data:
+            ai_message = {
+                'type': 'AI',
+                'content': response_data['choices'][0]['message']['content'],
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            chats[chat_id]['messages'].append(ai_message)
+            save_data(CHATS_FILE, chats)
+
+    except Exception as e:
+        print(f"Error while calling Perplexity API for chat {chat_id}: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True)
