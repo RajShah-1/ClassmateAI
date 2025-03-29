@@ -15,6 +15,7 @@ app = Flask(__name__)
 COURSES_FILE = 'courses.json'
 LECTURES_FILE = 'lectures.json'
 UPLOAD_FOLDER = 'uploads'
+CHATS_FILE = 'chats.json'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def load_data(file):
@@ -171,6 +172,74 @@ def upload_audio(course_id, lecture_id):
         
         return jsonify(lectures[lecture_id])
     return jsonify({'error': 'Lecture not found'}), 404
+
+
+@app.route('/lectures/<lecture_id>/chat', methods=['GET'])
+def create_chat(lecture_id):
+    lectures = load_data(LECTURES_FILE)
+    if lecture_id not in lectures:
+        return jsonify({'error': 'Lecture not found'}), 404
+
+    chat_id = str(uuid.uuid4())
+    chat = {
+        'chatID': chat_id,
+        'lectureID': lecture_id,
+        'messages': [],
+        'createdAt': datetime.now(timezone.utc).timestamp()
+    }
+
+    chats = load_data(CHATS_FILE)
+    chats[chat_id] = chat
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'chatID': chat_id}), 201
+
+@app.route('/chat/<chat_id>', methods=['GET'])
+def get_chat(chat_id):
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    return jsonify(chats[chat_id]['messages']), 200
+
+@app.route('/chat/<chat_id>', methods=['POST'])
+def post_message(chat_id):
+    data = request.json
+    message_type = data.get('type', '')  # Should be 'User' or 'AI'
+    message_content = data.get('message', '')
+
+    if not message_type or not message_content:
+        return jsonify({'error': 'Message type or content is missing'}), 400
+
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    # Creating a message object
+    message = {
+        'type': message_type,
+        'content': message_content,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+    # Append the message to the chat
+    chats[chat_id]['messages'].append(message)
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'message': 'Message added successfully'}), 201
+
+
+@app.route('/chat/<chat_id>', methods=['DELETE'])
+def delete_chat(chat_id):
+    chats = load_data(CHATS_FILE)
+    if chat_id not in chats:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    del chats[chat_id]
+    save_data(CHATS_FILE, chats)
+
+    return jsonify({'message': 'Chat deleted successfully'}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
