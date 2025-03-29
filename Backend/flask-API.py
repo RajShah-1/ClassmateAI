@@ -77,7 +77,7 @@ def create_lecture(course_id):
         'summary': '',
         'summaryStatus': 'NOT_STARTED',
         'lastUpdated': datetime.now(timezone.utc).timestamp(),
-        'notes': ''
+        'notes': []  # Initialize notes as an empty list
     }
     lectures = load_data(LECTURES_FILE)
     lectures[lecture_id] = lecture
@@ -239,6 +239,29 @@ def delete_chat(chat_id):
     save_data(CHATS_FILE, chats)
 
     return jsonify({'message': 'Chat deleted successfully'}), 200
+
+
+@app.route('/lectures/<lecture_id>/save-note', methods=['POST'])
+def save_note(lecture_id):
+    data = request.json
+    note_content = data.get('content', '')
+
+    if not note_content:
+        return jsonify({'error': 'Note content is empty'}), 400
+
+    lectures = load_data(LECTURES_FILE)
+    if lecture_id not in lectures:
+        return jsonify({'error': 'Lecture not found'}), 404
+
+    # Append the new note to the list of notes in the lecture
+    if 'notes' not in lectures[lecture_id]:
+        lectures[lecture_id]['notes'] = []
+
+    lectures[lecture_id]['notes'].append(note_content)
+    lectures[lecture_id]['lastUpdated'] = datetime.now(timezone.utc).timestamp()
+    save_data(LECTURES_FILE, lectures)
+
+    return jsonify({'message': 'Note saved successfully'}), 201
 
 
 if __name__ == '__main__':
