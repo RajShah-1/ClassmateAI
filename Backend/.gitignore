@@ -1,1 +1,5 @@
 venv/
+uploads/
+tests/
+instance/
+__pycache__/

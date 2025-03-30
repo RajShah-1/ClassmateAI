@@ -26,7 +26,7 @@ export const createLecture = async (courseId: string, lectureTitle: string) => {
     }
 };
 
-export const fetchNoteData = async (lectureId: string) => {
+export const fetchNoteData = async (lectureId: string, noteId: string) => {
     const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${lectureId}`);
     if (!lectureResponse.ok) {
         throw new Error("Failed to fetch lecture");
@@ -34,28 +34,41 @@ export const fetchNoteData = async (lectureId: string) => {
     const lecture = await lectureResponse.json();
     
     if (lecture.notes) {
-        return {
-            id: lectureId,
-            content: lecture.notes
-        };
-    } else {
-        return null;
-    }
+        // TODO: Fix this after implementing get note by note-id at backend.
+        // iteate over notes and find the one with the same id
+        for (const note of lecture.notes) {
+            if (note.id === noteId) {
+                return {
+                    id: note.id,
+                    content: note.content,
+                };
+            }
+        }
+    } 
+
+    return null;
 };
 
-export const fetchNoteListData = async (courseId: string, lectureId?: string) => {
-    const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${courseId}`);
+export const fetchNoteListData = async (lectureId: string) => {
+    const lectureResponse = await fetch(`${BACKEND_URL}/lectures/${lectureId}`);
     if (!lectureResponse.ok) {
         throw new Error("Failed to fetch lectures");
     }
     const lecture = await lectureResponse.json();
+    console.log(lecture.notes.map((note: any) => ({
+        id: note.id,
+        title: note.title,
+        description: note.description,
+    })));
+    console.log(lecture.summary);
 
-    return [{
-        id: lecture.lectureId,
-        title: `Organized Notes on ${lecture.lectureTitle}`,
-        description: lecture.description,
-        summary: lecture.summary.trimStart(),
-    }];
+    return lecture.notes.map((note: any) => ({
+        id: note.id,
+        title: note.title,
+        description: note.description,
+        // TODO Fix below hack and return summary separately
+        summary: lecture.summary ? lecture.summary : 'No summary available',
+    }));
 };
 
 export const fetchLectureData = async (courseId: string) => {

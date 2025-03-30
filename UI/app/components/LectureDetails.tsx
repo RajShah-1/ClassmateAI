@@ -1,4 +1,3 @@
-// LectureDetails.tsx
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
@@ -6,13 +5,11 @@ import {
   Avatar,
   Card,
   Button,
-  Text,
   Title,
   Paragraph,
 } from 'react-native-paper';
 import { styles } from '../utils/styles';
-import { fetchNoteData, fetchNoteListData, NoteListData } from '../utils/fetchData';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { fetchNoteListData, NoteListData } from '../utils/fetchData';
 
 type LectureDetailsRouterProp = RouteProp<{ LectureDetails: { lectureId: string, lectureTitle: string } }, 'LectureDetails'>;
 
@@ -51,7 +48,7 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
                 <Button mode="contained" style={styles.actionButton} onPress={() => { }}>
                   Download
                 </Button>
-                <Button mode="contained" style={styles.actionButton} onPress={() => navigation.navigate('Chat', { lectureTitle })}>
+                <Button mode="contained" style={styles.actionButton} onPress={() => navigation.navigate('Chat', { lectureId })}>
                   Chat with AI
                 </Button>
               </View>
@@ -89,7 +86,7 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
               key={note.id}
               style={styles.noteCard}
               onPress={() =>
-                navigation.navigate('NoteView', { lectureId: lectureId })
+                navigation.navigate('NoteView', { lectureId, noteId: note.id })
               }
             >
               <Card.Content style={styles.noteCardContent}>

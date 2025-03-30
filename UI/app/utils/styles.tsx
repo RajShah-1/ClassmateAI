@@ -66,7 +66,7 @@ export const chatStyles = StyleSheet.create({
     flex: 1,
   },
   messagesList: {
-    padding: 10,
+    // padding: 10,
   },
   chatBubbleUser: {
     alignSelf: 'flex-end',
@@ -100,6 +100,12 @@ export const chatStyles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 10,
     backgroundColor: '#FBFAFD',
+  },
+  swipeActionContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 64,
+    backgroundColor: '#FFD700',
   },
 });
 

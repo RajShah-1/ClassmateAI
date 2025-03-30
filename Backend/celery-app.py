@@ -2,9 +2,11 @@ import signal
 import sys
 import uuid
 import os
+import logging
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.mutable import MutableList
 from mutagen.mp3 import MP3
 from celery import Celery
 from Transcription import transcription
@@ -54,49 +56,78 @@ class Lecture(db.Model):
     last_updated = db.Column(
         db.Float, default=lambda: datetime.now(timezone.utc).timestamp()
     )
-    notes = db.Column(db.Text, default="")
+    notes = db.Column(MutableList.as_mutable(db.JSON), default=[])
 
 
-# Create DB Tables
+class Chat(db.Model):
+    """Represents a chat session for a lecture."""
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    lecture_id = db.Column(db.String(36), db.ForeignKey("lecture.id"), nullable=False)
+    created_at = db.Column(db.Float, default=lambda: datetime.now(timezone.utc).timestamp())
+
+    messages = db.relationship("ChatMessage", backref="chat", lazy=True)
+
+
+class ChatMessage(db.Model):
+    """Represents a message within a chat."""
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    chat_id = db.Column(db.String(36), db.ForeignKey("chat.id"), nullable=False)
+    sender = db.Column(db.String(50), nullable=False)  # User or AI
+    message = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.Float, default=lambda: datetime.now(timezone.utc).timestamp())
+
+
+# Create tables
 with app.app_context():
     db.create_all()
     print("Database tables created successfully!")
 
-
-@app.before_request
-def restart_pending_transcriptions():
-    """Requeues any transcription jobs that were in progress before a restart."""
-    # The following line will remove this handler, making it
-    # only run on the first request
-    app.before_request_funcs[None].remove(restart_pending_transcriptions)
-
-    pending_lectures = Lecture.query.filter_by(summary_status="IN_PROGRESS").all()
-    for lecture in pending_lectures:
-        print(f"Restarting transcription for {lecture.id}")
-        transcribe_audio_task.delay(lecture.audio_path, lecture.id)
-
-
-@app.route("/", methods=["GET"])
-def hello_server():
-    """Health check endpoint."""
-    return jsonify("Hello world")
-
+# Celery Task to simulate Perplexity response (for now)
+@celery.task(bind=True, max_retries=3)
+def get_chat_response_task(self, chat_id):
+    """Simulates a chat response generation task (mock for now)."""
+    with app.app_context():
+        chat = Chat.query.get(chat_id)
+        if not chat:
+            return
+        try:
+            # Replace this mock response with real Perplexity API call
+            response = "This is a mock response to chat."
+            # Add AI response to chat messages
+            chat_message = ChatMessage(
+                chat_id=chat.id,
+                sender="AI",
+                message=response,
+                timestamp=datetime.now(timezone.utc).timestamp()
+            )
+            db.session.add(chat_message)
+            db.session.commit()
+        except Exception as e:
+            print(f"Error while generating response for chat {chat_id}: {str(e)}")
+            raise self.retry(exc=e, countdown=60)
 
 @app.route("/courses", methods=["GET"])
 def get_courses():
-    """Fetches all courses."""
+    """Fetches all courses with the number of lectures."""
     courses = Course.query.all()
-    return jsonify(
-        [
+    response = []
+    
+    for course in courses:
+        num_lectures = Lecture.query.filter_by(course_id=course.id).count()
+        
+        response.append(
             {
-                "id": c.id,
-                "name": c.name,
-                "summary": c.summary,
-                "last_updated": c.last_updated,
+                "courseID": course.id,
+                "courseName": course.name,
+                "courseSummary": course.summary,
+                "lastUpdated": course.last_updated,
+                "lectures": [0] * num_lectures 
             }
-            for c in courses
-        ]
-    )
+        )
+
+    return jsonify(response)
 
 
 @app.route("/courses/<course_id>", methods=["GET"])
@@ -105,12 +136,15 @@ def get_course(course_id):
     course = Course.query.get(course_id)
     if not course:
         return jsonify({"error": "Course not found"}), 404
+
+    num_lectures = Lecture.query.filter_by(course_id=course.id).count()
     return jsonify(
         {
             "courseID": course.id,
             "courseName": course.name,
             "courseSummary": course.summary,
             "lastUpdated": course.last_updated,
+            "lectures": [0] * num_lectures 
         }
     )
 
@@ -145,6 +179,11 @@ def get_lectures(course_id):
                 "lectureID": l.id,
                 "lectureTitle": l.title,
                 "summaryStatus": l.summary_status,
+                "description": l.description,
+                "duration": l.duration if l.duration else 0,
+                "uploadDate": l.upload_date,
+                "summary": l.summary,
+                "notes": l.notes,
             }
             for l in lectures
         ]
@@ -165,14 +204,38 @@ def create_lecture(course_id):
     return (
         jsonify(
             {
-                "id": lecture.id,
+                "lectureID": lecture.id,
                 "title": lecture.title,
                 "course_id": lecture.course_id,
                 "description": lecture.description,
+                "duration": lecture.duration,
+                "date": lecture.upload_date,
+                "notes": lecture.notes,
             }
         ),
         201,
     )
+
+
+@app.route("/lectures/<lecture_id>", methods=["DELETE"])
+def delete_lecture(lecture_id):
+    """Deletes a specific lecture by lecture_id."""
+    lecture = Lecture.query.get(lecture_id)
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    # Remove the lecture from the associated course
+    course = Course.query.get(lecture.course_id)
+    if course:
+        course_lectures = [l.id for l in Lecture.query.filter_by(course_id=course.id).all()]
+        if lecture_id in course_lectures:
+            course_lectures.remove(lecture_id)
+            db.session.commit()
+
+    db.session.delete(lecture)
+    db.session.commit()
+
+    return jsonify({"message": "Lecture deleted successfully"}), 200
 
 
 @app.route("/lectures/<lecture_id>", methods=["GET"])
@@ -187,14 +250,16 @@ def get_lecture(lecture_id):
             "lectureTitle": lecture.title,
             "summaryStatus": lecture.summary_status,
             "transcript": lecture.transcript,
-            "summary": lecture.summary,
+            "description": lecture.description,
+            "duration": lecture.duration,
+            "date": lecture.upload_date,
             "notes": lecture.notes,
         }
     )
 
 
-@app.route("/lectures/<lecture_id>/upload-audio", methods=["POST"])
-def upload_audio(lecture_id):
+@app.route("/courses/<course_id>/lectures/<lecture_id>/upload-audio", methods=["POST"])
+def upload_audio(course_id, lecture_id):
     """Uploads an audio file for a lecture and triggers transcription."""
     if "audio" not in request.files:
         return jsonify({"error": "No audio file provided"}), 400
@@ -220,41 +285,165 @@ def upload_audio(lecture_id):
     transcribe_audio_task.delay(filepath, lecture_id)
     return jsonify({"message": "Audio uploaded, transcription in progress"}), 200
 
-
 @celery.task(bind=True, max_retries=3)
 def transcribe_audio_task(self, audio_path, lecture_id):
     """Celery task to process and transcribe lecture audio."""
     with app.app_context():
+        try:
+            logging.info(f"Transcribing audio for lecture {lecture_id} from {audio_path}")
+            transcript_val = transcription.transcribe_audio(audio_path)
+            logging.info(f"Transcript generated for {lecture_id}")
+            summary = summarize_transcript(transcript_val)
+            logging.info(f"Summary generated for {lecture_id}")
+            
+            lecture = Lecture.query.get(lecture_id)
+            if lecture:
+                lecture.transcript = transcript_val
+                lecture.summary = summary
+                lecture.summary_status = "TRANSCRIBED"
+                lecture.last_updated = datetime.now(timezone.utc).timestamp()
+                db.session.commit()
+
+                generate_notes_task.delay(lecture_id)
+            else:
+                logging.error(f"Lecture {lecture_id} not found.")
+        except Exception as e:
+            logging.error(f"Error processing transcription for {lecture_id}: {str(e)}")
+            raise self.retry(exc=e, countdown=60)
+
+@celery.task(bind=True, max_retries=3)
+def generate_notes_task(self, lecture_id):
+    """Celery task to generate notes from a lecture summary."""
+    with app.app_context():
         lecture = Lecture.query.get(lecture_id)
-        if not lecture:
+        if not lecture or not lecture.summary:
             return
         try:
-            transcript_val = transcription.transcribe_audio(audio_path)
-            summary = summarize_transcript(transcript_val)
-
-            lecture.transcript = transcript_val
-            lecture.summary = summary
+            # AI-generated notes (mock for now)
+            notes = {
+                "id": str(uuid.uuid4()),
+                "title": f"Organized notes on {lecture.title}",
+                "summary": lecture.summary,
+                "content": f"These are the organized notes for the lecture on {lecture.title}.\nSummary: {lecture.summary}",
+                "date_generated": datetime.now(timezone.utc).timestamp(),
+            }
+            lecture.notes = [notes]
             lecture.summary_status = "COMPLETED"
             lecture.last_updated = datetime.now(timezone.utc).timestamp()
             db.session.commit()
+            print(f"Notes generated for lecture {lecture_id}")
         except Exception as e:
-            lecture.summary_status = "FAILED"
-            db.session.commit()
-            print(f"Transcription failed for {lecture_id}, retrying... {str(e)}")
+            print(f"Notes generation failed for {lecture_id}, retrying... {str(e)}")
             raise self.retry(exc=e, countdown=60)
 
 
-
-@app.route("/lectures/<lecture_id>", methods=["DELETE"])
-def delete_lecture(lecture_id):
-    """Deletes a specific lecture."""
+@app.route("/lectures/<lecture_id>/chat", methods=["GET"])
+def create_chat(lecture_id):
+    """Creates a new chat for a lecture."""
     lecture = Lecture.query.get(lecture_id)
     if not lecture:
         return jsonify({"error": "Lecture not found"}), 404
 
-    db.session.delete(lecture)
+    chat = Chat(lecture_id=lecture_id)
+    db.session.add(chat)
     db.session.commit()
-    return jsonify({"message": "Lecture deleted successfully"}), 200
+
+    return jsonify({"chatID": chat.id}), 201
+
+
+@app.route("/chat/<chat_id>", methods=["GET"])
+def get_chat_messages(chat_id):
+    """Fetches all messages from a specific chat in chronological order."""
+    chat = Chat.query.get(chat_id)
+    if not chat:
+        return jsonify({"error": "Chat not found"}), 404
+
+    messages = ChatMessage.query.filter_by(chat_id=chat_id).order_by(ChatMessage.timestamp).all()
+    return jsonify(
+        [
+            {
+                "sender": m.sender,
+                "message": m.message,
+                "timestamp": m.timestamp,
+            }
+            for m in messages
+        ]
+    )
+
+
+@app.route("/chat/<chat_id>", methods=["POST"])
+def post_chat_message(chat_id):
+    """Posts a new message to a chat."""
+    data = request.json
+    message_content = data.get("message")
+    sender = data.get("type")
+
+    if not message_content or not sender:
+        return jsonify({"error": "Message content or sender is missing"}), 400
+
+    chat = Chat.query.get(chat_id)
+    if not chat:
+        return jsonify({"error": "Chat not found"}), 404
+
+    # Add the message to the chat
+    chat_message = ChatMessage(
+        chat_id=chat.id,
+        sender=sender,
+        message=message_content,
+        timestamp=datetime.now(timezone.utc).timestamp()
+    )
+    db.session.add(chat_message)
+    db.session.commit()
+
+    # If it's a user message, trigger a response generation
+    if sender == "User":
+        get_chat_response_task.delay(chat.id)
+
+    return jsonify({"message": "Message added successfully"}), 201
+
+
+@app.route("/lectures/<lecture_id>/save-note", methods=["POST"])
+def save_note(lecture_id):
+    """Saves a user note to the lecture."""
+    data = request.json
+    content = data.get("content")
+
+    if not content:
+        return jsonify({"error": "Note content is missing"}), 400
+
+    lecture = Lecture.query.get(lecture_id)
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    note = {
+        "id": str(uuid.uuid4()),
+        "title": "Custom Note",
+        "summary": "This is a user-added note. Summary is currently a placeholder.",
+        "content": content,
+        "date_generated": datetime.now(timezone.utc).timestamp(),
+    }
+
+    lecture.notes.append(note)
+    lecture.last_updated = datetime.now(timezone.utc).timestamp()
+    db.session.commit()
+
+    return jsonify({"message": "Note saved successfully"}), 201
+
+
+@app.route("/chat/<chat_id>", methods=["DELETE"])
+def delete_chat(chat_id):
+    """Deletes a chat and its messages."""
+    chat = Chat.query.get(chat_id)
+    if not chat:
+        return jsonify({"error": "Chat not found"}), 404
+
+    # Delete associated messages first
+    ChatMessage.query.filter_by(chat_id=chat_id).delete()
+
+    db.session.delete(chat)
+    db.session.commit()
+
+    return jsonify({"message": "Chat deleted successfully"}), 200
 
 
 def handle_sigterm(signal, frame):

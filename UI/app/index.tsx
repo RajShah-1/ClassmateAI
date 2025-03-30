@@ -62,7 +62,7 @@ export default function Index() {
         <Stack.Screen name="Lectures" component={LecturesScreen} options={{ title: 'Lectures' }}/>
         <Stack.Screen name="LectureDetails" component={LectureDetailsScreen} options={{ title: 'Lecture Details' }}/>
         <Stack.Screen name="NoteView" component={NoteViewScreen} options={{ title: 'Notes' }}/>
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} options={{title: 'Chat with AI'}} />
       </Stack.Navigator>
 >>>>>>> aaa224c (Add chat UI code with dummy data)
     </PaperProvider>
