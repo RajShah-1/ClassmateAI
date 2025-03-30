@@ -10,6 +10,8 @@ import {
 } from 'react-native-paper';
 import { styles } from '../utils/styles';
 import { fetchNoteListData, NoteListData } from '../utils/fetchData';
+import analytics from '@react-native-firebase/analytics';
+
 
 type LectureDetailsRouterProp = RouteProp<{ LectureDetails: { lectureId: string, lectureTitle: string } }, 'LectureDetails'>;
 
@@ -28,6 +30,11 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
     };
     getNotes();
   }, []);
+
+  analytics().logScreenView({
+    screen_name: 'LectureDetails',
+    screen_class: 'LectureDetailsScreen',
+  });
 
   const toggleExpand = (noteId: string) => {
     setExpandedNotes((prev) => ({

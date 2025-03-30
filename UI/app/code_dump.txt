@@ -1,0 +1,538 @@
+===== ./components/Dummy.tsx =====
+
+
+===== ./components/ChatScreen.tsx =====
+import React, { useState, useRef, useEffect } from 'react';
+import { Alert, View, FlatList, KeyboardAvoidingView, Platform, TextInput as RNTextInput } from 'react-native';
+import Markdown from 'react-native-markdown-display';
+import { IconButton } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import { chatStyles, chatMarkdownStyles } from '../utils/styles';
+import { fetchChatId, sendMessage, saveNote } from '../utils/chatio'; // Importing functions from chatio.tsx
+import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
+
+
+type ChatScreenRouterProp = RouteProp<{ ChatContext: { lectureId: string } }, 'ChatContext'>;
+
+interface Message {
+  id: string;
+  text: string;
+  isUser: boolean;
+}
+
+export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+  const route = useRoute<ChatScreenRouterProp>();
+  const { lectureId } = route.params;
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [isAIResponding, setIsAIResponding] = useState<boolean>(false);
+  const swipeableRefs = useRef<{ [key: string]: any }>({});
+
+  // Fetch chatId on component mount
+  useEffect(() => {
+    const fetchAndSetChatId = async () => {
+      const fetchedChatId = await fetchChatId(lectureId);
+      if (fetchedChatId) {
+        setChatId(fetchedChatId);
+      } else {
+        Alert.alert('Error', 'Could not fetch chat ID.');
+      }
+    };
+
+    fetchAndSetChatId();
+  }, [lectureId]);
+
+  const handleSend = async () => {
+    if (!input.trim() || !chatId) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: input,
+      isUser: true,
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setInput('');
+
+    setIsAIResponding(true);
+    // Block until AI responds
+    const aiMessage = await sendMessage(chatId, input); 
+    if (aiMessage) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          text: aiMessage,
+          isUser: false,
+        },
+      ]);
+    }
+    setIsAIResponding(false);
+  };
+
+  const handleAddToNotes = async (message: Message, id: string) => {
+    const success = await saveNote(lectureId, message.text);
+    if (success) {
+      Alert.alert('Saved', 'Message added to notes.');
+      swipeableRefs.current[id]?.close();
+    } else {
+      Alert.alert('Error', 'Could not save note.');
+    }
+  };
+
+  const renderRightActions = (progress: any, dragX: any, swipeable: any, message: Message) => {
+    const styleAnimation = useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: dragX.value + 75 }],
+      };
+    });
+
+    return (
+      <Animated.View style={styleAnimation}>
+        <IconButton style={{ width: 64, height: 50, backgroundColor: '#007AFF', }} icon="note-plus" iconColor="white" onPress={() => handleAddToNotes(message, message.id)} />
+      </Animated.View>
+    );
+  };
+
+  const renderMessage = ({ item }: { item: Message }) => (
+    <Swipeable
+      ref={(ref) => (swipeableRefs.current[item.id] = ref)}
+      friction={2}
+      enableTrackpadTwoFingerGesture
+      rightThreshold={40}
+      overshootRight={false}
+      renderRightActions={(progress, dragX, swipeable) => renderRightActions(progress, dragX, swipeable, item)}
+    >
+      <View style={item.isUser ? chatStyles.chatBubbleUser : chatStyles.chatBubbleAI}>
+        <Markdown style={item.isUser ? chatMarkdownStyles.user : chatMarkdownStyles.ai}>
+          {item.text}
+        </Markdown>
+      </View>
+    </Swipeable>
+  );
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={chatStyles.chatContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={chatStyles.messagesList}
+        />
+        <View style={chatStyles.inputRow}>
+          <RNTextInput
+            placeholder="Type your message..."
+            value={input}
+            onChangeText={setInput}
+            style={chatStyles.textInput}
+            editable={!isAIResponding}
+          />
+          <IconButton icon="send" onPress={handleSend} disabled={isAIResponding} />
+        </View>
+      </KeyboardAvoidingView>
+    </GestureHandlerRootView>
+  );
+};
+
+export default ChatScreen;
+
+
+===== ./components/LectureDetails.tsx =====
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView } from 'react-native';
+import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
+import {
+  Avatar,
+  Card,
+  Button,
+  Title,
+  Paragraph,
+} from 'react-native-paper';
+import { styles } from '../utils/styles';
+import { fetchNoteListData, NoteListData } from '../utils/fetchData';
+
+type LectureDetailsRouterProp = RouteProp<{ LectureDetails: { lectureId: string, lectureTitle: string } }, 'LectureDetails'>;
+
+export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+  const route = useRoute<LectureDetailsRouterProp>();
+
+  const { lectureTitle, lectureId } = route.params;
+  const [notes, setNotes] = useState<NoteListData>([]);
+  const [expandedNotes, setExpandedNotes] = useState<{ [key: string]: boolean }>({});
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+
+  useEffect(() => {
+    const getNotes = async () => {
+      const data: NoteListData = await fetchNoteListData(lectureId);
+      setNotes(data);
+    };
+    getNotes();
+  }, []);
+
+  const toggleExpand = (noteId: string) => {
+    setExpandedNotes((prev) => ({
+      ...prev,
+      [noteId]: !prev[noteId],
+    }));
+  };
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Card style={[styles.card, styles.headerCard]} key={lectureId}>
+          <View style={styles.cardRow}>
+            <Avatar.Icon icon="file-document-outline" size={50} style={styles.icon} />
+            <View style={styles.textContainer}>
+              <Title style={styles.lectureTitle}>{lectureTitle}</Title>
+              <View style={styles.lectureDetailsButtonColumn}>
+                <Button mode="contained" style={styles.actionButton} onPress={() => { }}>
+                  Download
+                </Button>
+                <Button mode="contained" style={styles.actionButton} onPress={() => navigation.navigate('Chat', { lectureId })}>
+                  Chat with AI
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Card>
+
+          <View style={styles.summaryContainer}>
+            <Title style={styles.sectionTitle}>Summary</Title>
+            <Paragraph style={styles.summaryText}>
+                {isSummaryExpanded 
+                ? (notes.length > 0 ? notes[0].summary : 'No summary available.') 
+                : (notes.length > 0 && notes[0].summary.length > 0 
+                  ? notes[0].summary.length > 100 
+                    ? `${notes[0].summary.slice(0, 100)}...` 
+                    : notes[0].summary 
+                  : 'No summary available.')}
+            </Paragraph>
+            {notes && notes.length > 0 && notes[0].summary.length > 100 && (
+              <Button mode="text" onPress={() => setIsSummaryExpanded(!isSummaryExpanded)}>
+                {isSummaryExpanded ? "Show Less" : "Show More"}
+              </Button>
+            )}
+          </View>
+
+
+        <Title style={styles.sectionTitle}>Saved Notes</Title>
+        {notes.map((note) => {
+          const isExpanded = expandedNotes[note.id];
+          note.description = note.description || "No description available";
+          const shortDescription = note.description.length > 100 ? `${note.description.slice(0, 100)}...` : note.description;
+
+          return (
+            <Card
+              key={note.id}
+              style={styles.noteCard}
+              onPress={() =>
+                navigation.navigate('NoteView', { lectureId, noteId: note.id })
+              }
+            >
+              <Card.Content style={styles.noteCardContent}>
+                <Title style={styles.noteTitle}>{note.title}</Title>
+                <Paragraph style={styles.noteDescription}>
+                  {isExpanded ? note.description : shortDescription}
+                </Paragraph>
+                {note.description.length > 100 && (
+                  <Button mode="text" onPress={() => toggleExpand(note.id)}>
+                    {isExpanded ? "Show Less" : "Show More"}
+                  </Button>
+                )}
+              </Card.Content>
+            </Card>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
+
+===== ./components/NoteViewScreen.tsx =====
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView, Alert } from 'react-native';
+import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
+import Markdown from 'react-native-markdown-display';
+import { Card, Title, ActivityIndicator } from 'react-native-paper';
+import { styles } from '../utils/styles';
+import { fetchNoteData } from '../utils/fetchData';
+
+type NoteViewRouterProps = RouteProp<{ NoteView: { lectureId: string, noteId: string } }, 'NoteView'>;
+
+const markdownStyles = {
+    body: { fontSize: 16, lineHeight: 24, paddingHorizontal: 10 },
+    heading1: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+    heading2: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+    heading3: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+    paragraph: { fontSize: 16, marginBottom: 10 },
+    list_item: { fontSize: 16, marginVertical: 5 },
+    code_block: { backgroundColor: '#f4f4f4', padding: 10, borderRadius: 5 },
+    hr: { backgroundColor: '#ccc', height: 1, marginVertical: 10 },
+};
+
+export const NoteViewScreen = () => {
+    const route = useRoute<NoteViewRouterProps>();
+    const { lectureId, noteId } = route.params;
+
+    const [note, setNote] = useState<{ id: string; content: string } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const getNote = async () => {
+            try {
+                const data = await fetchNoteData(lectureId, noteId);
+                if (data) {
+                    setNote(data);
+                } else {
+                    // Alert.alert('Notes are still being generated. Try again later.');
+                }
+            } catch (error) {
+                Alert.alert('Error', 'Failed to fetch note.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        getNote();
+    }, [lectureId, noteId]);
+
+    if (loading) {
+        return <ActivityIndicator animating={true} size="large" style={styles.loadingIndicator} />;
+    }
+
+    if (!note) {
+        return (
+            <View style={styles.screen}>
+                <ScrollView contentContainerStyle={styles.container}>
+                    <Card style={styles.noteCard}>
+                        <Card.Content>
+                            <Title style={styles.noteTitle}>Notes are not ready yet! Please try again later.</Title>
+                        </Card.Content>
+                    </Card>
+                </ScrollView>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.screen}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Markdown style={markdownStyles}>{note.content}</Markdown>
+            </ScrollView>
+        </View>
+    );
+};
+
+
+===== ./components/LecturesScreen.tsx =====
+import React, { useEffect, useState } from 'react';
+import { FlatList, View, Alert, TextInput } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { NavigationProp, useRoute, RouteProp } from '@react-navigation/native';
+import { Card, Title, Paragraph, Avatar, IconButton, Button, ActivityIndicator, Dialog, Portal } from 'react-native-paper';
+import { styles } from '../utils/styles';
+import { fetchLectureData, createLecture, LectureData, deleteLecture} from '../utils/fetchData';
+import { uploadAudioFile } from '../utils/uploadAudio';
+
+type LectureScreenRouteProp = RouteProp<{ Lectures: { courseId: string } }, 'Lectures'>;
+
+export const LecturesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+  const route = useRoute<LectureScreenRouteProp>();
+  const { courseId } = route.params;
+
+  const [lectures, setLectures] = useState<LectureData>([]);
+  const [uploading, setUploading] = useState(false);
+  const [lectureTitle, setLectureTitle] = useState('');
+  const [dialogVisible, setDialogVisible] = useState(false);
+
+  const getLectures = async () => {
+    try {
+      const data: LectureData = await fetchLectureData(courseId);
+      setLectures(data);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch lectures.');
+    }
+  };
+
+  useEffect(() => {
+    getLectures();
+  }, []);
+
+  const handleCreateLecture = async () => {
+    if (!lectureTitle.trim()) {
+      Alert.alert('Invalid Input', 'Please enter a lecture title.');
+      return;
+    }
+
+    try {
+      setDialogVisible(false);
+      setUploading(true);
+      const newLecture = await createLecture(courseId, lectureTitle);
+
+      Alert.alert('Lecture Created', 'Now select an audio file to upload.');
+      handleUploadAudio(newLecture.lectureID);
+    } catch (error) {
+      setUploading(false);
+      Alert.alert('Error', 'Failed to create the lecture.');
+    }
+  };
+
+  const handleUploadAudio = async (lectureId: string) => {
+    try {
+      const file = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+      });
+
+      if (file.canceled) {
+        setUploading(false);
+        return;
+      }
+
+      const { size, uri } = file.assets[0] as { size: number; uri: string };
+
+      if (size > 100 * 1024 * 1024) {
+        Alert.alert('File too large', 'Please select an audio file smaller than 100MB.');
+        setUploading(false);
+        return;
+      }
+
+      const response = await uploadAudioFile(uri, courseId, lectureId);
+      setUploading(false);
+
+      if (response.success) {
+        Alert.alert('Upload successful', 'Your audio file has been uploaded successfully.');
+      } else {
+        Alert.alert('Upload failed', 'Something went wrong while uploading the file.');
+        deleteLecture(lectureId);
+      }
+    } catch (error) {
+      setUploading(false);
+      deleteLecture(lectureId);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    }
+
+    getLectures();
+  };
+
+  return (
+    <View style={styles.screen}>
+      <FlatList
+        data={lectures}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Card style={styles.card} onPress={() => navigation.navigate('LectureDetails', { lectureId: item.id, lectureTitle: item.title })}>
+            <View style={styles.cardRow}>
+              <Avatar.Icon icon="file-document-outline" size={48} style={styles.icon} />
+              <View style={styles.textContainer}>
+                <Title>{item.title}</Title>
+                <Paragraph>{item.description}</Paragraph>
+                <Paragraph style={styles.meta}>{item.date} • {item.duration}</Paragraph>
+              </View>
+              <IconButton icon="chevron-right" onPress={() => navigation.navigate('LectureDetails', { lectureId: item.id, lectureTitle: item.title })} />
+            </View>
+          </Card>
+        )}
+      />
+
+      <View style={styles.uploadContainer}>
+        <Button mode="contained" icon="upload" onPress={() => setDialogVisible(true)} disabled={uploading}>
+          {uploading ? <ActivityIndicator animating={true} size="small" color="#fff" /> : 'Upload Files'}
+        </Button>
+      </View>
+
+      <Portal>
+        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
+          <Dialog.Title>Enter Lecture Title</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              placeholder="Lecture Title"
+              value={lectureTitle}
+              onChangeText={setLectureTitle}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleCreateLecture}>Create</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
+  );
+};
+
+
+===== ./components/CourseScreen.tsx =====
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, View } from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
+import { Card, Title, Paragraph, Avatar, Button } from 'react-native-paper';
+import { styles } from '../utils/styles';
+import { fetchCourseData, CourseData } from '../utils/fetchData';
+
+export const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
+  const [courses, setCourses] = useState<CourseData>([]);
+
+  const retryFetchCourses = (retries: number) => {
+    setTimeout(async () => {
+      try {
+        const data: CourseData = await fetchCourseData();
+        setCourses(data);
+      } catch (error) {
+        if (retries > 0) {
+          console.error('Retrying to fetch courses', error);
+          retryFetchCourses(retries - 1);
+        } else {
+          console.error('Failed to fetch courses after retries', error);
+          Alert.alert('Failed to get the courses!');
+        }
+      }
+    }, 5000);
+  };
+
+  useEffect(() => {
+    const getCourses = async () => {
+      try {
+        const data: CourseData = await fetchCourseData();
+        setCourses(data);
+      } catch (error) {
+        console.error('Failed to fetch courses', error);
+        retryFetchCourses(3); // Retry 3 times upon failure
+      }
+    };
+    getCourses();
+  }, []);
+
+  return (
+    <View style={styles.screen}>
+      <FlatList
+        data={courses}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Card style={styles.card} onPress={() => navigation.navigate('Lectures', { courseId: item.id })}>
+            <View style={styles.cardRow}>
+              <Avatar.Icon icon="file-document-outline" size={48} style={styles.icon} />
+              <View style={styles.textContainer}>
+                <Title>{item.title}</Title>
+                <Paragraph>{item.description}</Paragraph>
+                <Paragraph style={styles.meta}>{item.date} • {item.lectures} Lectures</Paragraph>
+              </View>
+            </View>
+          </Card>
+        )}
+      />
+      <Button mode="contained" icon="plus" style={styles.aiButton} onPress={() => {}}>
+        Create New Course
+      </Button>
+    </View>
+  );
+};
+
+
