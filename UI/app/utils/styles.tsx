@@ -32,6 +32,7 @@ export const styles = StyleSheet.create({
   lectureDetailsButtonColumn: { flexDirection: 'column', marginTop: 8 },
   smallActionButton: { marginTop: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, width: '90%', alignSelf: 'center' },
   // noteSummarySubtext: { fontSize: 12, color: '#333', marginBottom: 5, fontWeight: 'bold' },
+  noteContainer: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: 80},
 
 
   screen: { flex: 1 },
@@ -59,3 +60,74 @@ export const styles = StyleSheet.create({
   },
   uploadIcon: { backgroundColor: 'transparent' },
 });
+
+
+export const chatStyles = StyleSheet.create({
+  chatContainer: {
+    flex: 1,
+  },
+  messagesList: {
+    // padding: 10,
+  },
+  chatBubbleUser: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#6F4EA0',
+    padding: 10,
+    borderRadius: 15,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    maxWidth: '80%',
+  },
+  chatBubbleAI: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F2DFF8',
+    padding: 10,
+    borderRadius: 15,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    maxWidth: '80%',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D6D3E0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    backgroundColor: '#FBFAFD',
+  },
+  swipeActionContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 64,
+    backgroundColor: '#FFD700',
+  },
+});
+
+export const markdownStyles = {
+  body: { fontSize: 16, lineHeight: 24, paddingHorizontal: 10 },
+  heading1: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+  heading2: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+  heading3: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  paragraph: { fontSize: 16, marginBottom: 10 },
+  list_item: { fontSize: 16, marginVertical: 5 },
+  code_block: { backgroundColor: '#f4f4f4', padding: 10, borderRadius: 5 },
+  hr: { backgroundColor: '#ccc', height: 1, marginVertical: 10 },
+};
+
+export const chatMarkdownStyles = {
+  user: {
+    body: { color: '#FFFFFF', fontSize: 14 },
+    paragraph: { marginBottom: 0 },
+  },
+  ai: {
+    body: { color: '#2C2C2C', fontSize: 14 },
+    paragraph: { marginBottom: 0 },
+  },
+};

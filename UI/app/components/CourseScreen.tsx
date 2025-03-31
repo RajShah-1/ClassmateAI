@@ -5,7 +5,7 @@ import { Card, Title, Paragraph, Avatar, Button } from 'react-native-paper';
 import { styles } from '../utils/styles';
 import { fetchCourseData, CourseData } from '../utils/fetchData';
 
-export const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
+const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
   const [courses, setCourses] = useState<CourseData>([]);
 
   const retryFetchCourses = (retries: number) => {
@@ -62,3 +62,6 @@ export const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; 
     </View>
   );
 };
+
+
+export default CourseScreen;

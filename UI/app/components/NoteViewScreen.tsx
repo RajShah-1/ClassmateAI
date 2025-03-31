@@ -92,7 +92,7 @@ export const NoteViewScreen = () => {
     }
 
     return (
-        <View style={styles.screen}>
+    <View style={styles.screen}>
             <ScrollView
                 contentContainerStyle={styles.noteContainer}
                 onScroll={handleScroll}
