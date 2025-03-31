@@ -58,14 +58,14 @@ export const fetchNoteListData = async (lectureId: string) => {
     console.log(lecture.notes.map((note: any) => ({
         id: note.id,
         title: note.title,
-        description: note.description,
+        description: note.summary,
     })));
     console.log(lecture.summary);
 
     return lecture.notes.map((note: any) => ({
         id: note.id,
         title: note.title,
-        description: note.description,
+        description: note.summary,
         // TODO Fix below hack and return summary separately
         summary: lecture.summary ? lecture.summary : 'No summary available',
     }));

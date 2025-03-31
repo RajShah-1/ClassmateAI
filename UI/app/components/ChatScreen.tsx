@@ -4,11 +4,10 @@ import Markdown from 'react-native-markdown-display';
 import { IconButton } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
-import { chatStyles, chatMarkdownStyles } from '../utils/styles';
-import { fetchChatId, sendMessage, saveNote } from '../utils/chatio'; // Importing functions from chatio.tsx
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { chatStyles, chatMarkdownStyles, markdownStyles } from '../utils/styles';
+import { fetchChatId, sendMessage, saveNote, createNewChat, deleteChat } from '../utils/chatio'; // added createNewChat
 import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
-
 
 type ChatScreenRouterProp = RouteProp<{ ChatContext: { lectureId: string } }, 'ChatContext'>;
 
@@ -31,9 +30,11 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
   // Fetch chatId on component mount
   useEffect(() => {
     const fetchAndSetChatId = async () => {
-      const fetchedChatId = await fetchChatId(lectureId);
-      if (fetchedChatId) {
-        setChatId(fetchedChatId);
+      const res = await fetchChatId(lectureId);
+
+      if (res.chatId) {
+        setChatId(res.chatId);
+        setMessages(res.messages);
       } else {
         Alert.alert('Error', 'Could not fetch chat ID.');
       }
@@ -41,6 +42,30 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
 
     fetchAndSetChatId();
   }, [lectureId]);
+
+  // Set header right button for resetting the chat
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton icon="reload" onPress={handleResetChat} />
+      ),
+    });
+  }, [navigation, lectureId]);
+
+  const handleResetChat = async () => {
+    console.log(chatId)
+    if (chatId) {
+      await deleteChat(chatId);
+    }
+
+    const newChatId = await createNewChat(lectureId);
+    if (newChatId) {
+      setChatId(newChatId);
+      setMessages([]);
+    } else {
+      Alert.alert('Error', 'Could not reset chat.');
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || !chatId) return;
@@ -55,8 +80,8 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
     setInput('');
 
     setIsAIResponding(true);
-    // Block until AI responds
-    const aiMessage = await sendMessage(chatId, input); 
+    // Wait for AI to respond
+    const aiMessage = await sendMessage(chatId, input);
     if (aiMessage) {
       setMessages((prev) => [
         ...prev,
@@ -89,9 +114,22 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
 
     return (
       <Animated.View style={styleAnimation}>
-        <IconButton style={{ width: 64, height: 50, backgroundColor: '#007AFF', }} icon="note-plus" iconColor="white" onPress={() => handleAddToNotes(message, message.id)} />
+        <IconButton
+          style={{ width: 64, height: 50, backgroundColor: '#007AFF' }}
+          icon="note-plus"
+          iconColor="white"
+          onPress={() => handleAddToNotes(message, message.id)}
+          disabled={isAIResponding}
+        />
       </Animated.View>
     );
+  };
+
+  const combineStyles = (styles: any[]) => {
+    return styles.reduce((acc, style) => {
+      return { ...acc, ...style };
+    }
+    , {});
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
@@ -104,7 +142,10 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
       renderRightActions={(progress, dragX, swipeable) => renderRightActions(progress, dragX, swipeable, item)}
     >
       <View style={item.isUser ? chatStyles.chatBubbleUser : chatStyles.chatBubbleAI}>
-        <Markdown style={item.isUser ? chatMarkdownStyles.user : chatMarkdownStyles.ai}>
+        <Markdown style={combineStyles([
+          markdownStyles,
+          item.isUser ? chatMarkdownStyles.user : chatMarkdownStyles.ai
+        ])}>
           {item.text}
         </Markdown>
       </View>

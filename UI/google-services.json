@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "280877952648",
+    "project_id": "classmateai-a21a9",
+    "storage_bucket": "classmateai-a21a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:280877952648:android:08d65fd51322791e24b93d",
+        "android_client_info": {
+          "package_name": "com.anonymouys.ClassmateAI"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "280877952648-3ric5k4f27s6l6ut1kavp6tj53jk18kd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgJ29vQ1xm6OY6QDcMxqn-n9Fw6cMLeKs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "280877952648-3ric5k4f27s6l6ut1kavp6tj53jk18kd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "280877952648-b1uefubb531p3398r0jgvehp4j2v92lb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.anonymous.ClassmateAI"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

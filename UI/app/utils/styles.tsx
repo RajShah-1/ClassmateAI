@@ -32,6 +32,7 @@ export const styles = StyleSheet.create({
   lectureDetailsButtonColumn: { flexDirection: 'column', marginTop: 8 },
   smallActionButton: { marginTop: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, width: '90%', alignSelf: 'center' },
   // noteSummarySubtext: { fontSize: 12, color: '#333', marginBottom: 5, fontWeight: 'bold' },
+  noteContainer: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: 80},
 
 
   screen: { flex: 1 },
@@ -108,6 +109,17 @@ export const chatStyles = StyleSheet.create({
     backgroundColor: '#FFD700',
   },
 });
+
+export const markdownStyles = {
+  body: { fontSize: 16, lineHeight: 24, paddingHorizontal: 10 },
+  heading1: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+  heading2: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+  heading3: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  paragraph: { fontSize: 16, marginBottom: 10 },
+  list_item: { fontSize: 16, marginVertical: 5 },
+  code_block: { backgroundColor: '#f4f4f4', padding: 10, borderRadius: 5 },
+  hr: { backgroundColor: '#ccc', height: 1, marginVertical: 10 },
+};
 
 export const chatMarkdownStyles = {
   user: {

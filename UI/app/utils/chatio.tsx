@@ -1,12 +1,49 @@
 import { BACKEND_URL } from './constants';
 
-export const fetchChatId = async (lectureId: string) => {
+export const createNewChat = async (lectureId: string) => {
   try {
-    const response = await fetch(`${BACKEND_URL}/lectures/${lectureId}/chat`);
+    const response = await fetch(`${BACKEND_URL}/lectures/${lectureId}/create-chat`);
     const data = await response.json();
     return data.chatID || null;
   } catch (error) {
     console.error('Error fetching chat ID:', error);
+    return null;
+  }
+};
+
+export const fetchChatId = async (lectureId: string) => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/lectures/${lectureId}/last-chat`);
+    const data = await response.json();
+    const chatId =  data.chatID || null;
+    const rawMessages = data.messages || [];
+
+    const messages = rawMessages.map((message: any) => ({
+      id: message.id,
+      text: message.message,
+      isUser: message.sender === 'User',
+    }));
+
+    console.log(messages);
+
+    return { chatId, messages};
+  } catch (error) {
+    console.error('Error fetching chat ID:', error);
+    return {};
+  }
+};
+
+
+export const deleteChat = async (chatId: string) => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/chat/${chatId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      console.error('Failed to delete chat', chatId, response);
+    }
+  } catch (error) {
+    console.error('Error deleting chat', chatId, error);
     return null;
   }
 };
@@ -55,7 +92,7 @@ const pollForAIResponse = async (chatId: string) => {
           console.log('Last message:', lastMessage);
           if (lastMessage.sender === 'AI') {
             clearInterval(interval);
-            resolve(lastMessage.message); 
+            resolve(lastMessage.message);
           }
         }
 
