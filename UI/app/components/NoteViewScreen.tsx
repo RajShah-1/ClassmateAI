@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
-import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { useRoute, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import Markdown from 'react-native-markdown-display';
-import { Card, Title, ActivityIndicator } from 'react-native-paper';
+import { Card, Title, ActivityIndicator, FAB } from 'react-native-paper';
 import { styles } from '../utils/styles';
 import { fetchNoteData } from '../utils/fetchData';
+import analytics from '@react-native-firebase/analytics';
 
-type NoteViewRouterProps = RouteProp<{ NoteView: { lectureId: string } }, 'NoteView'>;
+type NoteViewRouterProps = RouteProp<{ NoteView: { lectureId: string, noteId: string } }, 'NoteView'>;
 
 const markdownStyles = {
     body: { fontSize: 16, lineHeight: 24, paddingHorizontal: 10 },
@@ -21,28 +22,56 @@ const markdownStyles = {
 
 export const NoteViewScreen = () => {
     const route = useRoute<NoteViewRouterProps>();
-    const { lectureId } = route.params;
+    const { lectureId, noteId } = route.params;
+    const navigation = useNavigation<NavigationProp<any>>();
 
     const [note, setNote] = useState<{ id: string; content: string } | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const startTimeRef = useRef<number>(Date.now());
+    const maxScrollPercentRef = useRef<number>(0);
+
     useEffect(() => {
         const getNote = async () => {
             try {
-                const data = await fetchNoteData(lectureId);
-                if (data) {
-                    setNote(data);
-                } else {
-                    // Alert.alert('Notes are still being generated. Try again later.');
-                }
+                const data = await fetchNoteData(lectureId, noteId);
+                if (data) setNote(data);
             } catch (error) {
                 Alert.alert('Error', 'Failed to fetch note.');
             } finally {
                 setLoading(false);
             }
         };
+
         getNote();
-    }, [lectureId]);
+
+        return () => {
+            const endTime = Date.now();
+            const timeSpent = Math.floor((endTime - startTimeRef.current) / 1000); // in seconds
+            const bounce = timeSpent < 5;
+
+            analytics().logEvent('note_view_stats', {
+                lecture_id: lectureId,
+                note_id: noteId,
+                time_spent_seconds: timeSpent,
+                scroll_depth_percent: Math.floor(maxScrollPercentRef.current),
+                bounced: bounce,
+            });
+        };
+    }, [lectureId, noteId]);
+
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+        const visibleHeight = layoutMeasurement.height;
+        const totalHeight = contentSize.height;
+
+        const currentBottom = contentOffset.y + visibleHeight;
+        const scrollPercent = Math.min((currentBottom / totalHeight) * 100, 100);
+
+        if (scrollPercent > maxScrollPercentRef.current) {
+            maxScrollPercentRef.current = scrollPercent;
+        }
+    };
 
     if (loading) {
         return <ActivityIndicator animating={true} size="large" style={styles.loadingIndicator} />;
@@ -64,9 +93,21 @@ export const NoteViewScreen = () => {
 
     return (
         <View style={styles.screen}>
-            <ScrollView contentContainerStyle={styles.container}>
+            <ScrollView
+                contentContainerStyle={styles.noteContainer}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+            >
                 <Markdown style={markdownStyles}>{note.content}</Markdown>
             </ScrollView>
+            <FAB
+                style={{ position: 'absolute', margin: 16, right: 16, bottom: 16 }}
+                icon="chat-question-outline"
+                onPress={() => navigation.navigate('Chat', { lectureId })}
+                label='Chat with AI'
+            />
         </View>
     );
 };
+
+export default NoteViewScreen;
