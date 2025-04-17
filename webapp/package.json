@@ -1,0 +1,39 @@
+{
+  "name": "webapp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev",
+    "start": "remix-serve ./build/server/index.js",
+    "typecheck": "remix typegen && tsc"
+  },
+  "dependencies": {
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2",
+    "@remix-run/dev": "^2.16.5",
+    "@remix-run/node": "^2.16.5",
+    "@remix-run/react": "^2.16.5",
+    "@remix-run/serve": "^2.16.5",
+    "axios": "^1.8.4",
+    "firebase": "^11.6.0",
+    "isbot": "^5.1.17",
+    "notistack": "^3.0.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router": "^7.5.0"
+  },
+  "devDependencies": {
+    "@react-router/dev": "^7.5.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^20",
+    "@types/react": "^18.0.1",
+    "@types/react-dom": "^18.0.1",
+    "react-router-devtools": "^1.1.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
