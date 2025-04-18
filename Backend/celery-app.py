@@ -249,6 +249,7 @@ def get_lecture(lecture_id):
             "lectureID": lecture.id,
             "lectureTitle": lecture.title,
             "summaryStatus": lecture.summary_status,
+            "summary": lecture.summary,
             "transcript": lecture.transcript,
             "description": lecture.description,
             "duration": lecture.duration,
@@ -337,7 +338,36 @@ def generate_notes_task(self, lecture_id):
             raise self.retry(exc=e, countdown=60)
 
 
-@app.route("/lectures/<lecture_id>/chat", methods=["GET"])
+@app.route("/lectures/<lecture_id>/last-chat", methods=["GET"])
+def get_latest_chat(lecture_id):
+    """Retrieves the latest chat on the lecture. If the last chat does not exist, we create a new one."""
+    lecture = Lecture.query.get(lecture_id)
+
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    # Get the latest chat on the lecture:
+    chat = Chat.query.filter_by(lecture_id=lecture_id).order_by(Chat.created_at.desc()).first()
+
+    if not chat:
+        # If no chat exists, create a new one
+        chat = Chat(lecture_id=lecture_id)
+        db.session.add(chat)
+        db.session.commit()
+
+    messages = ChatMessage.query.filter_by(chat_id=chat.id).order_by(ChatMessage.timestamp).all()
+    chat_messages = [
+        {
+            "sender": m.sender,
+            "message": m.message,
+            "timestamp": m.timestamp,
+        }
+        for m in messages
+    ]
+
+    return jsonify({"chatID": chat.id, "messages": chat_messages}), 201
+
+@app.route("/lectures/<lecture_id>/create-chat", methods=["GET"])
 def create_chat(lecture_id):
     """Creates a new chat for a lecture."""
     lecture = Lecture.query.get(lecture_id)
