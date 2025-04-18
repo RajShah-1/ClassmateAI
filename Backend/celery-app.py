@@ -12,6 +12,9 @@ from celery import Celery
 from Transcription import transcription
 from Transcription.transcription import summarize_transcript
 
+# Add the parent directory to the system path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 app = Flask(__name__)
 
 # Database Configuration
@@ -84,28 +87,55 @@ with app.app_context():
     db.create_all()
     print("Database tables created successfully!")
 
-# Celery Task to simulate Perplexity response (for now)
 @celery.task(bind=True, max_retries=3)
 def get_chat_response_task(self, chat_id):
-    """Simulates a chat response generation task (mock for now)."""
+    """Generates an AI response using Gemini based on lecture summary and chat history."""
+    from ai_agent import AIAgent
+    from dotenv import load_dotenv
+
     with app.app_context():
         chat = Chat.query.get(chat_id)
         if not chat:
             return
+
+        lecture = Lecture.query.get(chat.lecture_id)
+        if not lecture or not lecture.summary:
+            print(f"Lecture or summary not found for chat {chat_id}")
+            return
+
         try:
-            # Replace this mock response with real Perplexity API call
-            response = "This is a mock response to chat."
-            # Add AI response to chat messages
-            chat_message = ChatMessage(
+            load_dotenv()
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY is not set")
+
+            agent = AIAgent(api_key=api_key)
+
+            messages = ChatMessage.query.filter_by(chat_id=chat.id).order_by(ChatMessage.timestamp).all()
+            message_data = [{"sender": m.sender, "message": m.message} for m in messages]
+
+            if not message_data:
+                print(f"No user messages yet in chat {chat_id}")
+                return
+
+            last_user_input = message_data[-1]["message"]
+            response = agent.chat_response(
+                context=lecture.summary,
+                messages=messages,
+                user_input=last_user_input
+            )
+
+            ai_message = ChatMessage(
                 chat_id=chat.id,
                 sender="AI",
                 message=response,
                 timestamp=datetime.now(timezone.utc).timestamp()
             )
-            db.session.add(chat_message)
+            db.session.add(ai_message)
             db.session.commit()
+
         except Exception as e:
-            print(f"Error while generating response for chat {chat_id}: {str(e)}")
+            print(f"Error generating AI chat response for {chat_id}: {e}")
             raise self.retry(exc=e, countdown=60)
 
 @app.route("/courses", methods=["GET"])
@@ -313,29 +343,35 @@ def transcribe_audio_task(self, audio_path, lecture_id):
 
 @celery.task(bind=True, max_retries=3)
 def generate_notes_task(self, lecture_id):
-    """Celery task to generate notes from a lecture summary."""
+    """Celery task to generate notes from a lecture summary using Gemini."""
+    from ai_agent import AIAgent
+    from dotenv import load_dotenv
+
     with app.app_context():
         lecture = Lecture.query.get(lecture_id)
         if not lecture or not lecture.summary:
+            print(f"Lecture not found or empty summary for lecture {lecture_id}")
             return
+
         try:
-            # AI-generated notes (mock for now)
-            notes = {
-                "id": str(uuid.uuid4()),
-                "title": f"Organized notes on {lecture.title}",
-                "summary": lecture.summary,
-                "content": f"These are the organized notes for the lecture on {lecture.title}.\nSummary: {lecture.summary}",
-                "date_generated": datetime.now(timezone.utc).timestamp(),
-            }
+            load_dotenv()
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY is not set")
+
+            agent = AIAgent(api_key=api_key)
+            notes = agent.generate_notes(title=lecture.title, transcript=lecture.summary)
+
             lecture.notes = [notes]
             lecture.summary_status = "COMPLETED"
             lecture.last_updated = datetime.now(timezone.utc).timestamp()
             db.session.commit()
-            print(f"Notes generated for lecture {lecture_id}")
+
+            print(f"Gemini notes generated for lecture {lecture_id}")
+
         except Exception as e:
             print(f"Notes generation failed for {lecture_id}, retrying... {str(e)}")
             raise self.retry(exc=e, countdown=60)
-
 
 @app.route("/lectures/<lecture_id>/chat", methods=["GET"])
 def create_chat(lecture_id):
