@@ -4,3 +4,8 @@ uploads/
 tests/
 instance/
 __pycache__/
+
+Transcription/samples/transcript.txt
+Transcription/samples/summary.txt
+
+*.out
