@@ -28,7 +28,6 @@ export default function Layout() {
 
       const app = getApp();
       const analytics = getAnalytics(app);
-      console.log('Logging screen view:', pathname, params);
 
       logEvent(analytics, 'app_screen_view', {
         screen_name: pathname,

@@ -292,6 +292,36 @@ def get_lecture(lecture_id):
     )
 
 
+@app.route("/lectures/<lecture_id>/validate-notes", methods=["PUT"])
+def validate_notes(lecture_id):
+    """Updates the first note in a lecture with instructor validation."""
+    data = request.json
+    new_content = data.get("validated_notes")
+    if not new_content:
+        return jsonify({"error": "Missing validated_notes"}), 400
+
+    lecture = Lecture.query.get(lecture_id)
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    if not lecture.notes or len(lecture.notes) == 0:
+        return jsonify({"error": "No notes found to validate"}), 400
+
+    # Update the first note
+    lecture.notes[0]["content"] = new_content
+    lecture.notes[0]["instructor_validated"] = True
+    lecture.last_updated = datetime.now(timezone.utc).timestamp()
+    lecture.summary_status = "VALIDATED"
+    from sqlalchemy.orm.attributes import flag_modified
+
+    flag_modified(lecture, "notes")
+    db.session.commit()
+
+    return jsonify({"message": "Note validated successfully", "lecture": {
+        "lectureID": lecture.id,
+        "notes": lecture.notes
+    }}), 200
+
 @app.route("/courses/<course_id>/lectures/<lecture_id>/upload-audio", methods=["POST"])
 def upload_audio(course_id, lecture_id):
     """Uploads an audio file for a lecture and triggers transcription."""
@@ -318,6 +348,20 @@ def upload_audio(course_id, lecture_id):
 
     transcribe_audio_task.delay(filepath, lecture_id)
     return jsonify({"message": "Audio uploaded, transcription in progress"}), 200
+
+
+@app.route("/debug/lectures/<lecture_id>/regenerate-notes", methods=["POST"])
+def regenerate_notes(lecture_id):
+    """Debug-only endpoint to retrigger Gemini-based note generation for an existing lecture summary."""
+    lecture = Lecture.query.get(lecture_id)
+    if not lecture:
+        return jsonify({"error": f"Lecture not found for {lecture_id}"}), 404
+
+    if not lecture.summary or not lecture.transcript:
+        return jsonify({"error": "Transcript/summary missing. Cannot regenerate notes."}), 400
+
+    generate_notes_task.delay(lecture_id)
+    return jsonify({"message": f"Note generation re-triggered for lecture {lecture_id}"}), 202
 
 @celery.task(bind=True, max_retries=3)
 def transcribe_audio_task(self, audio_path, lecture_id):
@@ -377,7 +421,37 @@ def generate_notes_task(self, lecture_id):
             print(f"Notes generation failed for {lecture_id}, retrying... {str(e)}")
             raise self.retry(exc=e, countdown=60)
 
-@app.route("/lectures/<lecture_id>/chat", methods=["GET"])
+
+@app.route("/lectures/<lecture_id>/last-chat", methods=["GET"])
+def get_latest_chat(lecture_id):
+    """Retrieves the latest chat on the lecture. If the last chat does not exist, we create a new one."""
+    lecture = Lecture.query.get(lecture_id)
+
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    # Get the latest chat on the lecture:
+    chat = Chat.query.filter_by(lecture_id=lecture_id).order_by(Chat.created_at.desc()).first()
+
+    if not chat:
+        # If no chat exists, create a new one
+        chat = Chat(lecture_id=lecture_id)
+        db.session.add(chat)
+        db.session.commit()
+
+    messages = ChatMessage.query.filter_by(chat_id=chat.id).order_by(ChatMessage.timestamp).all()
+    chat_messages = [
+        {
+            "sender": m.sender,
+            "message": m.message,
+            "timestamp": m.timestamp,
+        }
+        for m in messages
+    ]
+
+    return jsonify({"chatID": chat.id, "messages": chat_messages}), 201
+
+@app.route("/lectures/<lecture_id>/create-chat", methods=["GET"])
 def create_chat(lecture_id):
     """Creates a new chat for a lecture."""
     lecture = Lecture.query.get(lecture_id)
@@ -444,7 +518,7 @@ def post_chat_message(chat_id):
 
 @app.route("/lectures/<lecture_id>/save-note", methods=["POST"])
 def save_note(lecture_id):
-    """Saves a user note to the lecture."""
+    """Saves a user note to the lecture and auto-generates title and summary using AI."""
     data = request.json
     content = data.get("content")
 
@@ -455,19 +529,24 @@ def save_note(lecture_id):
     if not lecture:
         return jsonify({"error": "Lecture not found"}), 404
 
-    note = {
-        "id": str(uuid.uuid4()),
-        "title": "Custom Note",
-        "summary": "This is a user-added note. Summary is currently a placeholder.",
-        "content": content,
-        "date_generated": datetime.now(timezone.utc).timestamp(),
-    }
+    from ai_agent import AIAgent
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return jsonify({"error": "GOOGLE_API_KEY not set"}), 500
+
+    agent = AIAgent(api_key=api_key)
+    note = agent.generate_custom_note(content=content)
 
     lecture.notes.append(note)
     lecture.last_updated = datetime.now(timezone.utc).timestamp()
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(lecture, "notes")
+
     db.session.commit()
 
-    return jsonify({"message": "Note saved successfully"}), 201
+    return jsonify({"message": "Note saved with AI-generated title and summary", "note": note}), 201
 
 
 @app.route("/chat/<chat_id>", methods=["DELETE"])

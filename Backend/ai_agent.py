@@ -13,27 +13,74 @@ class AIAgent:
             temperature=0.4,
         )
 
-        self.notes_prompt = ChatPromptTemplate.from_template(
+        self.content_prompt = ChatPromptTemplate.from_template(
             """
             You are an expert academic assistant. Based on the lecture transcript below,
             generate well-structured and clear notes that a student can use to study from.
 
             The notes should:
-            - Be concise and informative
+            - Be informative, on-point (no-fluff), and thorough
+            - Be 100 percentage accurate
             - Organize content into bullet points or short sections with headers
             - Include key concepts, definitions, examples, and any steps discussed
-            - Avoid repetition or irrelevant details
+            - Use pseudo code, line diagrams, equations, wherever required to better explain
 
             Transcript:
             ---
             {transcript}
             ---
 
-            Return the response as a JSON with keys: title, summary, content.
+            Return only the study notes content in markdown format.
             """
         )
 
-        self.chat_prompt = ChatPromptTemplate.from_template(
+        self.title_prompt = ChatPromptTemplate.from_template(
+            """
+            Given the following study notes, generate a short, informative title.
+
+            Notes:
+            ---
+            {transcript}
+            ---
+
+            Return only the title.
+            """
+        )
+
+        self.summary_prompt = ChatPromptTemplate.from_template(
+            """
+            Given the following study notes, write a concise summary of the key points.
+
+            Notes:
+            ---
+            {transcript}
+            ---
+
+            Return only the summary.
+            """
+        )
+
+    def generate_notes(self, title: str, transcript: str):
+        content_prompt = self.content_prompt.invoke({"transcript": transcript})
+        content_response = self.llm.invoke(content_prompt)
+
+        summary_prompt = self.summary_prompt.invoke({"transcript": content_response.content.strip()})
+        summary_response = self.llm.invoke(summary_prompt)
+
+        title_prompt = self.title_prompt.invoke({"transcript": content_response.content.strip()})
+        title_response = self.llm.invoke(title_prompt)
+
+        return {
+            "id": str(uuid.uuid4()),
+            "title": title_response.content.strip(),
+            "summary": summary_response.content.strip(),
+            "content": content_response.content.strip(),
+            "date_generated": datetime.now(timezone.utc).timestamp(),
+        }
+
+    def chat_response(self, context: str, messages: list[dict], user_input: str) -> str:
+        chat_history = "\n".join([f"{m.sender}: {m.message}" for m in messages])
+        prompt = ChatPromptTemplate.from_template(
             """
             You are a helpful AI tutor. Based on the lecture context and prior conversation, continue the discussion.
 
@@ -51,28 +98,30 @@ class AIAgent:
             User: {user_input}
             AI:
             """
-        )
-
-    def generate_notes(self, title: str, transcript: str):
-        prompt = self.notes_prompt.invoke({"transcript": transcript})
-        response = self.llm.invoke(prompt)
-        return {
-            "id": str(uuid.uuid4()),
-            "title": f"Notes on {title}",
-            "summary": f"Key points covered in the lecture titled '{title}'.",
-            "content": response.content.strip(),
-            "date_generated": datetime.now(timezone.utc).timestamp(),
-        }
-
-    def chat_response(self, context: str, messages: list[dict], user_input: str) -> str:
-        chat_history = "\n".join([f"{m.sender}: {m.message}" for m in messages])
-        prompt = self.chat_prompt.invoke({
+        ).invoke({
             "context": context,
             "chat_history": chat_history,
             "user_input": user_input
         })
         response = self.llm.invoke(prompt)
         return response.content.strip()
+
+    def generate_custom_note(self, content: str):
+        summary_prompt = self.summary_prompt.invoke({"transcript": content})
+        summary_response = self.llm.invoke(summary_prompt)
+
+        title_prompt = self.title_prompt.invoke({"transcript": content})
+        title_response = self.llm.invoke(title_prompt)
+
+        return {
+            "id": str(uuid.uuid4()),
+            "title": title_response.content.strip(),
+            "summary": summary_response.content.strip(),
+            "content": content.strip(),
+            "instructor_validated": False,
+            "date_generated": datetime.now(timezone.utc).timestamp(),
+            "date_validated": None,
+        }
 
 
 def main():
