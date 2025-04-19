@@ -27,6 +27,15 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
   const [isAIResponding, setIsAIResponding] = useState<boolean>(false);
   const swipeableRefs = useRef<{ [key: string]: any }>({});
 
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
+
+
   // Fetch chatId on component mount
   useEffect(() => {
     const fetchAndSetChatId = async () => {
@@ -53,7 +62,6 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
   }, [navigation, lectureId]);
 
   const handleResetChat = async () => {
-    console.log(chatId)
     if (chatId) {
       await deleteChat(chatId);
     }
@@ -151,18 +159,20 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
       </View>
     </Swipeable>
   );
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardAvoidingView
-        style={chatStyles.chatContainer}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <FlatList
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={chatStyles.messagesList}
+          keyboardShouldPersistTaps="handled"
+          ref={flatListRef}
         />
         <View style={chatStyles.inputRow}>
           <RNTextInput
@@ -177,6 +187,7 @@ export const ChatScreen = ({ navigation }: { navigation: NavigationProp<any> }) 
       </KeyboardAvoidingView>
     </GestureHandlerRootView>
   );
+
 };
 
 export default ChatScreen;

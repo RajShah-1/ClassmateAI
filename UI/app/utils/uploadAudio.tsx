@@ -5,8 +5,6 @@ import { BACKEND_URL, AUDIO_UPLOAD_TIMEOUT_MS } from './constants';
 export const uploadAudioFile = async (uri: string, courseId: string, lectureId: string) => {
     const UPLOAD_ENDPOINT = `${BACKEND_URL}/courses/${courseId}/lectures/${lectureId}/upload-audio`;
 
-    console.log('Uploading to:', UPLOAD_ENDPOINT);
-
     try {
         const uploadUrl = UPLOAD_ENDPOINT;
         const fileInfo = await FileSystem.getInfoAsync(uri);

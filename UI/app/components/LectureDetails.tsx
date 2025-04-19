@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
+import { NavigationProp, RouteProp, useFocusEffect, useRoute } from '@react-navigation/native';
 import {
   Avatar,
   Card,
@@ -23,13 +23,16 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
   const [expandedNotes, setExpandedNotes] = useState<{ [key: string]: boolean }>({});
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 
-  useEffect(() => {
-    const getNotes = async () => {
-      const data: NoteListData = await fetchNoteListData(lectureId);
-      setNotes(data);
-    };
-    getNotes();
-  }, []);
+  // Refresh every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const getNotes = async () => {
+        const data: NoteListData = await fetchNoteListData(lectureId);
+        setNotes(data);
+      };
+      getNotes();
+    }, [lectureId])
+  );
 
   analytics().logScreenView({
     screen_name: 'LectureDetails',
@@ -97,7 +100,28 @@ export const LectureDetailsScreen = ({ navigation }: { navigation: NavigationPro
               }
             >
               <Card.Content style={styles.noteCardContent}>
-                <Title style={styles.noteTitle}>{note.title}</Title>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                <Title style={[styles.noteTitle, { marginRight: 4 }]}>{note.title}</Title>
+                {note.instructor_validated && (
+                  <View style={{
+                    backgroundColor: '#D1FAE5', // soft green
+                    borderRadius: 12,
+                    paddingHorizontal: 4,
+                    paddingVertical: 2,
+                  }}>
+                    <Paragraph style={{
+                      color: '#065F46',
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      margin: 0,
+                      padding: 0,
+                    }}>
+                      Validated
+                    </Paragraph>
+                  </View>
+                )}
+              </View>
+
                 <Paragraph style={styles.noteDescription}>
                   {isExpanded ? note.description : shortDescription}
                 </Paragraph>

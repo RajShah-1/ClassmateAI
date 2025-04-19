@@ -24,8 +24,6 @@ export const fetchChatId = async (lectureId: string) => {
       isUser: message.sender === 'User',
     }));
 
-    console.log(messages);
-
     return { chatId, messages};
   } catch (error) {
     console.error('Error fetching chat ID:', error);
@@ -67,7 +65,6 @@ export const sendMessage = async (chatId: string, message: string) => {
     }
 
     const aiMessage = await pollForAIResponse(chatId);
-    console.log('===== AI response:', aiMessage);
     return aiMessage;
   } catch (error) {
     console.error('Error in sendMessage:', error);
@@ -85,11 +82,9 @@ const pollForAIResponse = async (chatId: string) => {
         counter--;
         const response = await fetch(`${BACKEND_URL}/chat/${chatId}`);
         const data = await response.json();
-        console.log(data.length);
 
         if (data && data.length > 0) {
           const lastMessage = data[data.length - 1];
-          console.log('Last message:', lastMessage);
           if (lastMessage.sender === 'AI') {
             clearInterval(interval);
             resolve(lastMessage.message);
