@@ -319,6 +319,20 @@ def upload_audio(course_id, lecture_id):
     transcribe_audio_task.delay(filepath, lecture_id)
     return jsonify({"message": "Audio uploaded, transcription in progress"}), 200
 
+
+@app.route("/debug/lectures/<lecture_id>/regenerate-notes", methods=["POST"])
+def regenerate_notes(lecture_id):
+    """Debug-only endpoint to retrigger Gemini-based note generation for an existing lecture summary."""
+    lecture = Lecture.query.get(lecture_id)
+    if not lecture:
+        return jsonify({"error": "Lecture not found"}), 404
+
+    if not lecture.summary or not lecture.transcript:
+        return jsonify({"error": "Transcript/summary missing. Cannot regenerate notes."}), 400
+
+    generate_notes_task.delay(lecture_id)
+    return jsonify({"message": f"Note generation re-triggered for lecture {lecture_id}"}), 202
+
 @celery.task(bind=True, max_retries=3)
 def transcribe_audio_task(self, audio_path, lecture_id):
     """Celery task to process and transcribe lecture audio."""

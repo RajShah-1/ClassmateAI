@@ -35,21 +35,24 @@ class AIAgent:
 
         self.chat_prompt = ChatPromptTemplate.from_template(
             """
-            You are a helpful AI tutor. Based on the lecture context and prior conversation, continue the discussion.
+            You are an expert academic assistant. Based on the lecture transcript below,
+            generate well-structured and clear notes that a student can use to study from.
 
-            Lecture Summary:
+            The notes should:
+            - Be concise and informative
+            - Organize content into bullet points or short sections with headers
+            - Include key concepts, definitions, examples, and any steps discussed
+            - Avoid repetition or irrelevant details
+
+            Transcript:
             ---
-            {context}
+            {transcript}
             ---
 
-            Previous messages:
-            ---
-            {chat_history}
-            ---
-
-            Respond to the user's latest input:
-            User: {user_input}
-            AI:
+            Return the response in **raw JSON format** with:
+            - "title": a short title of the notes
+            - "summary": a 1-2 line summary of the lecture
+            - "content": a Markdown-formatted string with headings and bullet points
             """
         )
 
