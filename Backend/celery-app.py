@@ -12,10 +12,14 @@ from celery import Celery
 from Transcription import transcription
 from Transcription.transcription import summarize_transcript
 
+
+from flask_cors import CORS
+
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__)
+CORS(app)
 
 # Database Configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"

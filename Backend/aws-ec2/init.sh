@@ -7,12 +7,11 @@ sudo systemctl enable redis
 sudo systemctl start redis
 
 cd ~
-git clone https://github.com/YOUR_USERNAME/classmate-backend.git
-cd classmate-backend
+git clone https://github.com/RajShah-1/ClassmateAI.git
+cd ClassmateAI/Backend
 
 # Python setup
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install --upgrade pip
 
 # Install Python deps
@@ -22,6 +21,5 @@ pip install -r requirements.txt
 #             langchain langchain-google-genai summa gunicorn
 
 mkdir uploads
-sudo ufw allow 5000
 
 echo 'Pulled all the dependencies'
