@@ -2,6 +2,11 @@
 
 personal/
 
+GoogleService-Account.json
+GoogleService-Info.plist
+google-services.json
+eas.json
+
 # Ignore andriod and ios dists
 android/
 ios/

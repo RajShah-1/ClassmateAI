@@ -56,9 +56,9 @@ const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
           </Card>
         )}
       />
-      <Button mode="contained" icon="plus" style={styles.aiButton} onPress={() => {}}>
+      {/* <Button mode="contained" icon="plus" style={styles.aiButton} onPress={() => {}}>
         Create New Course
-      </Button>
+      </Button> */}
     </View>
   );
 };
