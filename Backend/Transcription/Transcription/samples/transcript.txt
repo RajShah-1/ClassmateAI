@@ -1,0 +1,1 @@
+This lecture covered the basics of quantum mechanics, including superposition and entanglement. We also discussed the double-slit experiment and its implications. Finally, we touched upon potential applications of quantum computing.

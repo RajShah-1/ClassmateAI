@@ -6,10 +6,10 @@ import uuid
 
 class AIAgent:
     def __init__(self, api_key: str):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=api_key,
-            convert_system_message_to_human=True,
+        self.llm = ChatOpenAI(
+            model="perplexity",
+            openai_api_key=api_key,
+            openai_api_base="https://api.perplexity.ai",
             temperature=0.4,
         )
 
