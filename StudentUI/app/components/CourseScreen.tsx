@@ -44,7 +44,7 @@ const CourseScreen = ({ navigation }: { navigation: NavigationProp<any>; }) => {
         data={courses}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Card style={styles.card} onPress={() => navigation.navigate('Lectures', { courseId: item.id })}>
+          <Card style={styles.card} onPress={() => navigation.navigate('Lectures', { courseId: item.id, courseTitle: item.title })}>
             <View style={styles.cardRow}>
               <Avatar.Icon icon="file-document-outline" size={48} style={styles.icon} />
               <View style={styles.textContainer}>

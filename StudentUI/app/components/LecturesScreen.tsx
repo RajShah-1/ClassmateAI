@@ -7,11 +7,31 @@ import { styles } from '../utils/styles';
 import { fetchLectureData, createLecture, LectureData, deleteLecture} from '../utils/fetchData';
 import { uploadAudioFile } from '../utils/uploadAudio';
 
-type LectureScreenRouteProp = RouteProp<{ Lectures: { courseId: string } }, 'Lectures'>;
+type LectureScreenRouteProp = RouteProp<{ Lectures: { courseId: string, courseTitle: string } }, 'Lectures'>;
+
+const getTargetedAd = (courseTitle: string) => {
+  if (courseTitle.toLowerCase().includes('psychology')) {
+    return {
+      title: 'Boost Your Brain!',
+      subtitle: 'Try MindSculpt – AI flashcards for Psych students.',
+    };
+  } else if (courseTitle.toLowerCase().includes('algorithms') || courseTitle.toLowerCase().includes('comp')) {
+    return {
+      title: 'Debug Like a Pro!',
+      subtitle: 'CodeNinja – Your AI-powered debugging assistant.',
+    };
+  } else {
+    return {
+      title: 'Ace Your Next Exam!',
+      subtitle: 'SmartStudy – Tailored study tools for every major.',
+    };
+  }
+};
+
 
 export const LecturesScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute<LectureScreenRouteProp>();
-  const { courseId } = route.params;
+  const { courseId, courseTitle } = route.params;
 
   const [lectures, setLectures] = useState<LectureData>([]);
   const [uploading, setUploading] = useState(false);
@@ -106,6 +126,16 @@ export const LecturesScreen = ({ navigation }: { navigation: NavigationProp<any>
           </Card>
         )}
       />
+
+      <Card style={{ margin: 16, backgroundColor: '#f0f0ff', borderRadius: 12, padding: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Avatar.Icon icon="lightbulb-on-outline" size={36} style={{ backgroundColor: '#dcdcff', marginRight: 12 }} />
+          <View>
+            <Title style={{ fontSize: 16 }}>{getTargetedAd(courseTitle).title}</Title>
+            <Paragraph style={{ fontSize: 12, color: '#444' }}>{getTargetedAd(courseTitle).subtitle}</Paragraph>
+          </View>
+        </View>
+      </Card>
 
       <View style={styles.uploadContainer}>
         <Button mode="contained" icon="upload" onPress={() => setDialogVisible(true)} disabled={uploading}>
